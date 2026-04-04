@@ -1,66 +1,85 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../models/admin_user_model.dart';
 
 class AdminAuthService {
-  static final List<AdminUser> _admins = [
-    AdminUser(
-      id: 'admin-001',
-      name: 'Super Admin',
-      email: 'admin@ichi.com',
-      role: 'super_admin',
-      lastLogin: DateTime.now().subtract(const Duration(hours: 2)),
-      isActive: true,
-      permissions: [
-        AdminPermissions.viewDashboard,
-        AdminPermissions.manageProducts,
-        AdminPermissions.manageOrders,
-        AdminPermissions.manageUsers,
-        AdminPermissions.viewAnalytics,
-        AdminPermissions.manageSettings,
-        AdminPermissions.manageStaff,
-      ],
-    ),
-    AdminUser(
-      id: 'admin-002',
-      name: 'Manager',
-      email: 'manager@ichi.com',
-      role: 'manager',
-      lastLogin: DateTime.now().subtract(const Duration(hours: 5)),
-      isActive: true,
-      permissions: [
-        AdminPermissions.viewDashboard,
-        AdminPermissions.manageProducts,
-        AdminPermissions.manageOrders,
-        AdminPermissions.viewAnalytics,
-      ],
-    ),
-  ];
+  final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
 
   Future<AdminUser?> loginAdmin(String email, String password) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-
     try {
-      // Simple validation - in real app, use proper authentication
-      if (email.isEmpty || password.isEmpty) {
-        return null;
-      }
-
-      final admin = _admins.firstWhere(
-        (a) => a.email == email && a.isActive,
-        orElse: () => throw Exception('Admin not found'),
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
       );
 
-      return admin;
-    } catch (e) {
+      final user = credential.user;
+      if (user == null) return null;
+
+      final isSuperAdmin = email.toLowerCase() == 'admin@ichi.com';
+
+      return AdminUser(
+        id: user.uid,
+        name: user.displayName ?? (isSuperAdmin ? 'Super Admin' : 'Admin User'),
+        email: user.email ?? email,
+        role: isSuperAdmin ? 'super_admin' : 'manager',
+        lastLogin: DateTime.now(),
+        isActive: true,
+        permissions: isSuperAdmin
+            ? const [
+                AdminPermissions.viewDashboard,
+                AdminPermissions.manageProducts,
+                AdminPermissions.manageOrders,
+                AdminPermissions.manageUsers,
+                AdminPermissions.viewAnalytics,
+                AdminPermissions.manageSettings,
+                AdminPermissions.manageStaff,
+              ]
+            : const [
+                AdminPermissions.viewDashboard,
+                AdminPermissions.manageProducts,
+                AdminPermissions.manageOrders,
+                AdminPermissions.viewAnalytics,
+              ],
+      );
+    } on fb.FirebaseAuthException {
+      return null;
+    } catch (_) {
       return null;
     }
   }
 
   Future<void> logoutAdmin() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    await _auth.signOut();
   }
 
   AdminUser? getCurrentAdmin() {
-    // This would normally retrieve from secure storage
-    return _admins.isNotEmpty ? _admins[0] : null;
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    final isSuperAdmin = (user.email ?? '').toLowerCase() == 'admin@ichi.com';
+
+    return AdminUser(
+      id: user.uid,
+      name: user.displayName ?? (isSuperAdmin ? 'Super Admin' : 'Admin User'),
+      email: user.email ?? '',
+      role: isSuperAdmin ? 'super_admin' : 'manager',
+      lastLogin: DateTime.now(),
+      isActive: true,
+      permissions: isSuperAdmin
+          ? const [
+              AdminPermissions.viewDashboard,
+              AdminPermissions.manageProducts,
+              AdminPermissions.manageOrders,
+              AdminPermissions.manageUsers,
+              AdminPermissions.viewAnalytics,
+              AdminPermissions.manageSettings,
+              AdminPermissions.manageStaff,
+            ]
+          : const [
+              AdminPermissions.viewDashboard,
+              AdminPermissions.manageProducts,
+              AdminPermissions.manageOrders,
+              AdminPermissions.viewAnalytics,
+            ],
+    );
   }
 }

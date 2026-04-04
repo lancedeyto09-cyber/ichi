@@ -18,35 +18,39 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.primaryDark,
+      foregroundColor: Colors.white,
       elevation: 0,
+      surfaceTintColor: Colors.transparent,
       leading: showBackButton
           ? IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.primaryDark),
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: onBackPressed ?? () => Navigator.pop(context),
             )
           : null,
       title: Text(
         title,
         style: const TextStyle(
-          color: AppColors.textDark,
+          color: Colors.white,
           fontSize: 20,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
         ),
       ),
       centerTitle: false,
       actions: [
-        // Notifications
         IconButton(
-          icon: const Icon(Icons.notifications_outlined,
-              color: AppColors.textMedium),
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: Colors.white,
+          ),
           onPressed: () {},
         ),
-        // Profile Menu
         Consumer<AdminProvider>(
           builder: (context, adminProvider, _) {
             return PopupMenuButton<String>(
               offset: const Offset(0, 50),
+              color: Colors.white,
+              surfaceTintColor: Colors.white,
               onSelected: (String result) {
                 if (result == 'logout') {
                   adminProvider.logoutAdmin();
@@ -95,23 +99,28 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                   child: Row(
                     children: [
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppColors.primaryDark.withOpacity(0.2),
+                          color: Colors.white.withOpacity(0.18),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.25),
+                          ),
                         ),
                         child: const Center(
                           child: Icon(
                             Icons.person,
                             size: 18,
-                            color: AppColors.primaryDark,
+                            color: Colors.white,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Icon(Icons.keyboard_arrow_down,
-                          color: AppColors.textMedium),
+                      const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Colors.white,
+                      ),
                     ],
                   ),
                 ),

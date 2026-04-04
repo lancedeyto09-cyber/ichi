@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "658364611913",
+    "project_id": "ichi-admin",
+    "storage_bucket": "ichi-admin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:658364611913:android:fcb9e905b5d1d5f4bfee98",
+        "android_client_info": {
+          "package_name": "com.example.ichi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMYZSZrAepTufM6SRYLuiV6yZidUQFLmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,232 +1,340 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
-import '../utils/admin_responsive.dart';
+import 'admin_ui.dart';
 
-class AdminSidebar extends StatefulWidget {
+class AdminSidebar extends StatelessWidget {
   final String currentRoute;
   final Function(String) onNavigate;
 
   const AdminSidebar({
-    Key? key,
+    super.key,
     required this.currentRoute,
     required this.onNavigate,
-  }) : super(key: key);
+  });
 
-  @override
-  State<AdminSidebar> createState() => _AdminSidebarState();
-}
-
-class _AdminSidebarState extends State<AdminSidebar> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 280,
-      color: Colors.white,
-      child: Column(
-        children: [
-          // Logo Section
-          Container(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.primaryDark, AppColors.primaryLight],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.dashboard,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'ICHI Admin',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    Text(
-                      'v1.0',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                  ],
+      width: 290,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AdminUI.radiusLg),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.70),
+              borderRadius: BorderRadius.circular(AdminUI.radiusLg),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.55),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryDark.withOpacity(0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
-          ),
-          Divider(height: 1, color: Colors.grey[200]),
-          // Menu Items
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildMenuItem(
-                    icon: Icons.dashboard_outlined,
-                    label: 'Dashboard',
-                    route: '/admin-dashboard',
-                    isActive: widget.currentRoute == '/admin-dashboard',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMenuItem(
-                    icon: Icons.shopping_bag_outlined,
-                    label: 'Products',
-                    route: '/admin-products',
-                    isActive: widget.currentRoute == '/admin-products',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMenuItem(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'Orders',
-                    route: '/admin-orders',
-                    isActive: widget.currentRoute == '/admin-orders',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMenuItem(
-                    icon: Icons.people_outline,
-                    label: 'Customers',
-                    route: '/admin-users',
-                    isActive: widget.currentRoute == '/admin-users',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMenuItem(
-                    icon: Icons.analytics_outlined,
-                    label: 'Analytics',
-                    route: '/admin-analytics',
-                    isActive: widget.currentRoute == '/admin-analytics',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMenuItem(
-                    icon: Icons.settings_outlined,
-                    label: 'Settings',
-                    route: '/admin-settings',
-                    isActive: widget.currentRoute == '/admin-settings',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Divider(height: 1, color: Colors.grey[200]),
-          // Footer
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primaryDark.withOpacity(0.2),
+                      gradient: AdminUI.purpleGradient,
+                      borderRadius: BorderRadius.circular(AdminUI.radiusMd),
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.person,
-                        size: 16,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Admin User',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textDark,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.16),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ),
-                        Text(
-                          'admin@ichi.com',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textLight,
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'ICHI Admin',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 17,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Elegant store control',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(14),
+                    children: [
+                      _sectionLabel('OVERVIEW'),
+                      const SizedBox(height: 10),
+                      _navItem(
+                        icon: Icons.space_dashboard_rounded,
+                        label: 'Dashboard',
+                        route: '/admin-dashboard',
+                      ),
+                      _navItem(
+                        icon: Icons.inventory_2_rounded,
+                        label: 'Products',
+                        route: '/admin-products',
+                      ),
+                      _navItem(
+                        icon: Icons.receipt_long_rounded,
+                        label: 'Orders',
+                        route: '/admin-orders',
+                      ),
+                      _navItem(
+                        icon: Icons.group_rounded,
+                        label: 'Customers',
+                        route: '/admin-users',
+                      ),
+                      _navItem(
+                        icon: Icons.bar_chart_rounded,
+                        label: 'Analytics',
+                        route: '/admin-analytics',
+                      ),
+                      _navItem(
+                        icon: Icons.settings_rounded,
+                        label: 'Settings',
+                        route: '/admin-settings',
+                      ),
+                      _navItem(
+                        icon: Icons.admin_panel_settings_rounded,
+                        label: 'Admin Staff',
+                        route: '/admin-staff',
+                      ),
+                      const SizedBox(height: 16),
+                      _sectionLabel('QUICK STATUS'),
+                      const SizedBox(height: 10),
+                      _miniStatusCard(
+                        title: 'Pending Orders',
+                        value: '12',
+                        color: AppColors.warningColor,
+                        icon: Icons.schedule_rounded,
+                      ),
+                      const SizedBox(height: 12),
+                      _miniStatusCard(
+                        title: 'Low Stock Items',
+                        value: '5',
+                        color: AppColors.errorColor,
+                        icon: Icons.warning_amber_rounded,
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryDark.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primaryDark.withOpacity(0.12),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Color(0x227D57D7),
+                          child: Icon(
+                            Icons.person,
+                            color: AppColors.primaryDark,
+                            size: 18,
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Admin User',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textDark,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'admin@ichi.com',
+                                style: TextStyle(
+                                  color: AppColors.textMedium,
+                                  fontSize: 11,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildMenuItem({
+  Widget _sectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.1,
+          color: AppColors.textLight,
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem({
     required IconData icon,
     required String label,
     required String route,
-    required bool isActive,
   }) {
-    return Material(
-      color: Colors.transparent,
+    final isActive = currentRoute == route;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: () => widget.onNavigate(route),
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => onNavigate(route),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
-            color: isActive
-                ? AppColors.primaryDark.withOpacity(0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: isActive
-                ? Border.all(
-                    color: AppColors.primaryDark.withOpacity(0.3),
-                    width: 1,
-                  )
-                : null,
+            gradient: isActive ? AdminUI.purpleGradient : null,
+            color: isActive ? null : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isActive
+                  ? Colors.transparent
+                  : AppColors.primaryLight.withOpacity(0.18),
+            ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: AppColors.primaryDark.withOpacity(0.22),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : [],
           ),
           child: Row(
             children: [
               Icon(
                 icon,
                 size: 20,
-                color: isActive ? AppColors.primaryDark : AppColors.textMedium,
+                color: isActive ? Colors.white : AppColors.textMedium,
               ),
               const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive ? AppColors.primaryDark : AppColors.textDark,
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isActive ? Colors.white : AppColors.textDark,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
               ),
+              if (isActive)
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white,
+                  size: 14,
+                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _miniStatusCard({
+    required String title,
+    required String value,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.16)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textDark,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

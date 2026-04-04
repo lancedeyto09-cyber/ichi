@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../constants/app_colors.dart';
 import '../providers/admin_provider.dart';
 import '../utils/admin_responsive.dart';
 import '../widgets/admin_sidebar.dart';
@@ -11,9 +10,10 @@ import 'orders_management_screen.dart';
 import 'users_management_screen.dart';
 import 'analytics_screen.dart';
 import 'settings_screen.dart';
+import 'admin_staff_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
-  const AdminHomeScreen({Key? key}) : super(key: key);
+  const AdminHomeScreen({super.key});
 
   @override
   State<AdminHomeScreen> createState() => _AdminHomeScreenState();
@@ -88,6 +88,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         return 'Analytics';
       case '/admin-settings':
         return 'Settings';
+      case '/admin-staff':
+        return 'Admin Staff';
       default:
         return 'Admin';
     }
@@ -96,19 +98,21 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Widget _buildScreenForRoute(String route) {
     switch (route) {
       case '/admin-dashboard':
-        return DashboardScreen();
+        return const DashboardScreen();
       case '/admin-products':
-        return ProductsManagementScreen();
+        return const ProductsManagementScreen();
       case '/admin-orders':
-        return OrdersManagementScreen();
+        return const OrdersManagementScreen();
       case '/admin-users':
-        return UsersManagementScreen();
+        return const UsersManagementScreen();
       case '/admin-analytics':
-        return AnalyticsScreen();
+        return const AnalyticsScreen();
       case '/admin-settings':
-        return SettingsScreen();
+        return const SettingsScreen();
+      case '/admin-staff':
+        return const AdminStaffScreen();
       default:
-        return DashboardScreen();
+        return const DashboardScreen();
     }
   }
 }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+
+import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'providers/product_provider.dart';
 import 'providers/cart_provider.dart';
@@ -8,7 +11,6 @@ import 'admin/providers/product_management_provider.dart';
 import 'admin/providers/order_management_provider.dart';
 import 'admin/providers/user_management_provider.dart';
 import 'admin/providers/analytics_provider.dart';
-import 'admin/utils/admin_theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/home_screen.dart';
@@ -17,15 +19,19 @@ import 'admin/screens/admin_login_screen.dart';
 import 'admin/screens/admin_home_screen.dart';
 import 'constants/theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(
     MultiProvider(
       providers: [
-        // Regular User Providers
         Provider<AuthService>(create: (_) => MockAuthService()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
-        // Admin Providers
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => ProductManagementProvider()),
         ChangeNotifierProvider(create: (_) => OrderManagementProvider()),
