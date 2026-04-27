@@ -1,7 +1,12 @@
+import 'dart:io';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+
 import '../../constants/app_colors.dart';
+import '../../services/cloudinary_service.dart';
 import '../models/admin_product_model.dart';
 import '../providers/product_management_provider.dart';
 import '../utils/admin_responsive.dart';
@@ -17,14 +22,6 @@ class ProductsManagementScreen extends StatefulWidget {
 class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _sortValue = 'name';
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProductManagementProvider>().loadProducts();
-    });
-  }
 
   @override
   void dispose() {
@@ -63,7 +60,7 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(provider, isMobile),
+                _buildHeader(isMobile),
                 const SizedBox(height: 20),
                 if (isMobile)
                   Column(
@@ -165,18 +162,17 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
                                   underline: const SizedBox(),
                                   borderRadius: BorderRadius.circular(16),
                                   icon: const Icon(
-                                      Icons.keyboard_arrow_down_rounded),
-                                  items: provider.categories
-                                      .map(
-                                        (category) => DropdownMenuItem(
-                                          value: category,
-                                          child: Text(
-                                            category,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
+                                    Icons.keyboard_arrow_down_rounded,
+                                  ),
+                                  items: provider.categories.map((category) {
+                                    return DropdownMenuItem(
+                                      value: category,
+                                      child: Text(
+                                        category,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  }).toList(),
                                   onChanged: (value) {
                                     if (value != null) {
                                       provider.filterByCategory(value);
@@ -194,7 +190,8 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
                                   underline: const SizedBox(),
                                   borderRadius: BorderRadius.circular(16),
                                   icon: const Icon(
-                                      Icons.keyboard_arrow_down_rounded),
+                                    Icons.keyboard_arrow_down_rounded,
+                                  ),
                                   items: const [
                                     DropdownMenuItem(
                                       value: 'name',
@@ -272,15 +269,14 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
                                 underline: const SizedBox(),
                                 borderRadius: BorderRadius.circular(16),
                                 icon: const Icon(
-                                    Icons.keyboard_arrow_down_rounded),
-                                items: provider.categories
-                                    .map(
-                                      (category) => DropdownMenuItem(
-                                        value: category,
-                                        child: Text(category),
-                                      ),
-                                    )
-                                    .toList(),
+                                  Icons.keyboard_arrow_down_rounded,
+                                ),
+                                items: provider.categories.map((category) {
+                                  return DropdownMenuItem(
+                                    value: category,
+                                    child: Text(category),
+                                  );
+                                }).toList(),
                                 onChanged: (value) {
                                   if (value != null) {
                                     provider.filterByCategory(value);
@@ -294,7 +290,8 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
                                 underline: const SizedBox(),
                                 borderRadius: BorderRadius.circular(16),
                                 icon: const Icon(
-                                    Icons.keyboard_arrow_down_rounded),
+                                  Icons.keyboard_arrow_down_rounded,
+                                ),
                                 items: const [
                                   DropdownMenuItem(
                                     value: 'name',
@@ -380,12 +377,12 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
                   )
                 else if (products.isEmpty)
                   _glassCard(
-                    child: SizedBox(
+                    child: const SizedBox(
                       width: double.infinity,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 42),
+                        padding: EdgeInsets.symmetric(vertical: 42),
                         child: Column(
-                          children: const [
+                          children: [
                             Icon(
                               Icons.inventory_2_outlined,
                               size: 58,
@@ -414,25 +411,26 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
                   )
                 else if (isMobile)
                   Column(
-                    children: products
-                        .map(
-                          (product) => _mobileProductCard(
-                            product: product,
-                            onEdit: () =>
-                                _openProductDialog(context, product: product),
-                            onDelete: () => _confirmDelete(
-                                context, product.id, product.name),
-                            onToggleStatus: () {
-                              provider.updateProduct(
-                                product.copyWith(
-                                  isActive: !product.isActive,
-                                  updatedAt: DateTime.now(),
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                        .toList(),
+                    children: products.map((product) {
+                      return _mobileProductCard(
+                        product: product,
+                        onEdit: () =>
+                            _openProductDialog(context, product: product),
+                        onDelete: () => _confirmDelete(
+                          context,
+                          product.id,
+                          product.name,
+                        ),
+                        onToggleStatus: () {
+                          provider.updateProduct(
+                            product.copyWith(
+                              isActive: !product.isActive,
+                              updatedAt: DateTime.now(),
+                            ),
+                          );
+                        },
+                      );
+                    }).toList(),
                   )
                 else
                   _glassCard(
@@ -441,13 +439,16 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
                       children: [
                         _tableHeader(),
                         const SizedBox(height: 10),
-                        ...products.map(
-                          (product) => _productRow(
+                        ...products.map((product) {
+                          return _productRow(
                             product: product,
                             onEdit: () =>
                                 _openProductDialog(context, product: product),
                             onDelete: () => _confirmDelete(
-                                context, product.id, product.name),
+                              context,
+                              product.id,
+                              product.name,
+                            ),
                             onToggleStatus: () {
                               provider.updateProduct(
                                 product.copyWith(
@@ -456,8 +457,8 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
                                 ),
                               );
                             },
-                          ),
-                        ),
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -469,7 +470,7 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
     );
   }
 
-  Widget _buildHeader(ProductManagementProvider provider, bool isMobile) {
+  Widget _buildHeader(bool isMobile) {
     if (isMobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,36 +493,7 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryDark, AppColors.primaryMid],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryDark.withOpacity(0.20),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text(
-                  'Catalog Manager',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _catalogBadge(),
         ],
       );
     }
@@ -553,38 +525,778 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.primaryDark, AppColors.primaryMid],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryDark.withOpacity(0.20),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Catalog Manager',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
+        _catalogBadge(),
       ],
     );
+  }
+
+  Widget _catalogBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primaryDark, AppColors.primaryMid],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDark.withOpacity(0.20),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
+          SizedBox(width: 8),
+          Text(
+            'Catalog Manager',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openProductDialog(
+    BuildContext context, {
+    AdminProduct? product,
+  }) async {
+    final provider = context.read<ProductManagementProvider>();
+    final isEdit = product != null;
+    final isMobile = AdminResponsive.isMobile(context);
+
+    final nameCtrl = TextEditingController(text: product?.name ?? '');
+    final descriptionCtrl =
+        TextEditingController(text: product?.description ?? '');
+    final priceCtrl = TextEditingController(
+      text: product != null ? product.price.toString() : '',
+    );
+    final stockCtrl = TextEditingController(
+      text: product != null ? product.stock.toString() : '',
+    );
+    final ratingCtrl = TextEditingController(
+      text: product != null ? product.rating.toString() : '4.5',
+    );
+    final reviewsCtrl = TextEditingController(
+      text: product != null ? product.reviews.toString() : '0',
+    );
+    final skuCtrl = TextEditingController(text: product?.sku ?? '');
+    final imageCtrl = TextEditingController(text: product?.image ?? '');
+    final tagsCtrl = TextEditingController(
+      text: product?.tags.join(', ') ?? '',
+    );
+
+    String selectedCategory = product?.category ??
+        (provider.categories.length > 1 ? provider.categories[1] : 'General');
+
+    bool isActive = product?.isActive ?? true;
+    File? selectedImage;
+    bool isUploading = false;
+
+    List<String> imageUrls = [];
+
+    final formKey = GlobalKey<FormState>();
+    final picker = ImagePicker();
+    final cloudinary = CloudinaryService();
+
+    Future<void> pickAndUploadImage(
+      BuildContext dialogContext,
+      StateSetter setModalState,
+    ) async {
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (picked == null) return;
+
+      setModalState(() {
+        selectedImage = File(picked.path);
+        isUploading = true;
+      });
+
+      try {
+        final url = await cloudinary.uploadImage(selectedImage!);
+        setModalState(() {
+          imageUrls.add(url);
+          imageCtrl.text = url;
+        });
+
+        if (dialogContext.mounted) {
+          ScaffoldMessenger.of(dialogContext).showSnackBar(
+            const SnackBar(
+              content: Text('Image uploaded successfully!'),
+              backgroundColor: AppColors.successColor,
+            ),
+          );
+        }
+      } catch (e) {
+        if (dialogContext.mounted) {
+          ScaffoldMessenger.of(dialogContext).showSnackBar(
+            SnackBar(
+              content: Text('Upload failed: ${e.toString()}'),
+              backgroundColor: AppColors.errorColor,
+            ),
+          );
+        }
+      } finally {
+        setModalState(() => isUploading = false);
+      }
+    }
+
+    Widget imageUploadField(
+      BuildContext dialogContext,
+      StateSetter setModalState, {
+      double? width,
+    }) {
+      final field = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (imageUrls.isNotEmpty)
+            SizedBox(
+              height: 100,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: imageUrls.length,
+                itemBuilder: (context, index) {
+                  return Stack(
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        width: 100,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          image: DecorationImage(
+                            image: NetworkImage(imageUrls[index]),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 12,
+                        child: GestureDetector(
+                          onTap: () {
+                            setModalState(() {
+                              imageUrls.removeAt(index);
+                              imageCtrl.text =
+                                  imageUrls.isNotEmpty ? imageUrls.last : '';
+                            });
+                          },
+                          child: const CircleAvatar(
+                            radius: 10,
+                            backgroundColor: Colors.red,
+                            child: Icon(
+                              Icons.close,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          if (imageUrls.isNotEmpty) const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: isUploading
+                  ? null
+                  : () => pickAndUploadImage(dialogContext, setModalState),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryDark,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: isUploading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.image_rounded),
+              label: Text(isUploading ? 'Uploading...' : 'Pick Image'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: imageCtrl,
+            decoration: _inputDecoration(
+              hint: 'Latest Image URL (auto-filled)',
+            ),
+          ),
+        ],
+      );
+
+      if (width != null) return SizedBox(width: width, child: field);
+      return SizedBox(width: double.infinity, child: field);
+    }
+
+    Future<void> saveProduct(
+      BuildContext dialogContext,
+      StateSetter setModalState,
+    ) async {
+      if (!formKey.currentState!.validate()) return;
+
+      final now = DateTime.now();
+      final tags = tagsCtrl.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      final newProduct = AdminProduct(
+        id: product?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        name: nameCtrl.text.trim(),
+        description: descriptionCtrl.text.trim(),
+        price: double.parse(priceCtrl.text.trim()),
+        originalPrice: product?.originalPrice,
+        category: selectedCategory,
+        image: imageUrls.isNotEmpty ? imageUrls.first : imageCtrl.text.trim(),
+        images: imageUrls,
+        stock: int.parse(stockCtrl.text.trim()),
+        rating: double.tryParse(ratingCtrl.text.trim()) ?? 4.5,
+        reviews: int.tryParse(reviewsCtrl.text.trim()) ?? 0,
+        isActive: isActive,
+        createdAt: product?.createdAt ?? now,
+        updatedAt: now,
+        tags: tags,
+        sku: skuCtrl.text.trim(),
+      );
+
+      if (isEdit) {
+        await provider.updateProduct(newProduct);
+      } else {
+        await provider.addProduct(newProduct);
+      }
+
+      if (dialogContext.mounted) {
+        Navigator.pop(dialogContext);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isEdit ? 'Product updated' : 'Product added'),
+            backgroundColor: AppColors.successColor,
+          ),
+        );
+      }
+    }
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setModalState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: EdgeInsets.all(isMobile ? 12 : 24),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(26),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: isMobile ? double.infinity : 760,
+                    ),
+                    padding: EdgeInsets.all(isMobile ? 16 : 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.92),
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.55),
+                      ),
+                    ),
+                    child: Form(
+                      key: formKey,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    isEdit ? 'Edit Product' : 'Add Product',
+                                    style: TextStyle(
+                                      fontSize: isMobile ? 20 : 24,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  icon: const Icon(Icons.close_rounded),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Update catalog details, pricing, visibility, and inventory.',
+                              style: TextStyle(color: AppColors.textMedium),
+                            ),
+                            const SizedBox(height: 20),
+                            if (isMobile)
+                              Column(
+                                children: [
+                                  _fieldShell(
+                                    child: TextFormField(
+                                      controller: nameCtrl,
+                                      decoration: _inputDecoration(
+                                        hint: 'Product name',
+                                      ),
+                                      validator: (value) =>
+                                          value == null || value.trim().isEmpty
+                                              ? 'Required'
+                                              : null,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _fieldShell(
+                                    child: DropdownButtonFormField<String>(
+                                      value: selectedCategory,
+                                      decoration: _inputDecoration(
+                                        hint: 'Category',
+                                      ),
+                                      items: provider.categories
+                                          .where((c) => c != 'All')
+                                          .map(
+                                            (category) => DropdownMenuItem(
+                                              value: category,
+                                              child: Text(category),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (value) {
+                                        if (value != null) {
+                                          setModalState(() {
+                                            selectedCategory = value;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _fieldShell(
+                                    child: TextFormField(
+                                      controller: skuCtrl,
+                                      decoration: _inputDecoration(hint: 'SKU'),
+                                      validator: (value) =>
+                                          value == null || value.trim().isEmpty
+                                              ? 'Required'
+                                              : null,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _fieldShell(
+                                    child: TextFormField(
+                                      controller: priceCtrl,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                      decoration:
+                                          _inputDecoration(hint: 'Price'),
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Required';
+                                        }
+                                        if (double.tryParse(value) == null) {
+                                          return 'Invalid';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _fieldShell(
+                                    child: TextFormField(
+                                      controller: stockCtrl,
+                                      keyboardType: TextInputType.number,
+                                      decoration:
+                                          _inputDecoration(hint: 'Stock'),
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Required';
+                                        }
+                                        if (int.tryParse(value) == null) {
+                                          return 'Invalid';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _fieldShell(
+                                    child: TextFormField(
+                                      controller: ratingCtrl,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                      decoration:
+                                          _inputDecoration(hint: 'Rating'),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _fieldShell(
+                                    child: TextFormField(
+                                      controller: reviewsCtrl,
+                                      keyboardType: TextInputType.number,
+                                      decoration:
+                                          _inputDecoration(hint: 'Reviews'),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  imageUploadField(
+                                    dialogContext,
+                                    setModalState,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _fieldShell(
+                                    child: TextFormField(
+                                      controller: descriptionCtrl,
+                                      minLines: 3,
+                                      maxLines: 5,
+                                      decoration: _inputDecoration(
+                                        hint: 'Description',
+                                      ),
+                                      validator: (value) =>
+                                          value == null || value.trim().isEmpty
+                                              ? 'Required'
+                                              : null,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _fieldShell(
+                                    child: TextFormField(
+                                      controller: tagsCtrl,
+                                      decoration: _inputDecoration(
+                                        hint: 'Tags separated by comma',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Wrap(
+                                spacing: 14,
+                                runSpacing: 14,
+                                children: [
+                                  _fieldShell(
+                                    width: 340,
+                                    child: TextFormField(
+                                      controller: nameCtrl,
+                                      decoration: _inputDecoration(
+                                        hint: 'Product name',
+                                      ),
+                                      validator: (value) =>
+                                          value == null || value.trim().isEmpty
+                                              ? 'Required'
+                                              : null,
+                                    ),
+                                  ),
+                                  _fieldShell(
+                                    width: 220,
+                                    child: DropdownButtonFormField<String>(
+                                      value: selectedCategory,
+                                      decoration: _inputDecoration(
+                                        hint: 'Category',
+                                      ),
+                                      items: provider.categories
+                                          .where((c) => c != 'All')
+                                          .map(
+                                            (category) => DropdownMenuItem(
+                                              value: category,
+                                              child: Text(category),
+                                            ),
+                                          )
+                                          .toList(),
+                                      onChanged: (value) {
+                                        if (value != null) {
+                                          setModalState(() {
+                                            selectedCategory = value;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  _fieldShell(
+                                    width: 140,
+                                    child: TextFormField(
+                                      controller: skuCtrl,
+                                      decoration: _inputDecoration(hint: 'SKU'),
+                                      validator: (value) =>
+                                          value == null || value.trim().isEmpty
+                                              ? 'Required'
+                                              : null,
+                                    ),
+                                  ),
+                                  _fieldShell(
+                                    width: 220,
+                                    child: TextFormField(
+                                      controller: priceCtrl,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                      decoration:
+                                          _inputDecoration(hint: 'Price'),
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Required';
+                                        }
+                                        if (double.tryParse(value) == null) {
+                                          return 'Invalid';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  _fieldShell(
+                                    width: 180,
+                                    child: TextFormField(
+                                      controller: stockCtrl,
+                                      keyboardType: TextInputType.number,
+                                      decoration:
+                                          _inputDecoration(hint: 'Stock'),
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Required';
+                                        }
+                                        if (int.tryParse(value) == null) {
+                                          return 'Invalid';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  _fieldShell(
+                                    width: 160,
+                                    child: TextFormField(
+                                      controller: ratingCtrl,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                      decoration:
+                                          _inputDecoration(hint: 'Rating'),
+                                    ),
+                                  ),
+                                  _fieldShell(
+                                    width: 160,
+                                    child: TextFormField(
+                                      controller: reviewsCtrl,
+                                      keyboardType: TextInputType.number,
+                                      decoration:
+                                          _inputDecoration(hint: 'Reviews'),
+                                    ),
+                                  ),
+                                  imageUploadField(
+                                    dialogContext,
+                                    setModalState,
+                                    width: 520,
+                                  ),
+                                  _fieldShell(
+                                    width: 700,
+                                    child: TextFormField(
+                                      controller: descriptionCtrl,
+                                      minLines: 3,
+                                      maxLines: 5,
+                                      decoration: _inputDecoration(
+                                        hint: 'Description',
+                                      ),
+                                      validator: (value) =>
+                                          value == null || value.trim().isEmpty
+                                              ? 'Required'
+                                              : null,
+                                    ),
+                                  ),
+                                  _fieldShell(
+                                    width: 700,
+                                    child: TextFormField(
+                                      controller: tagsCtrl,
+                                      decoration: _inputDecoration(
+                                        hint: 'Tags separated by comma',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(height: 18),
+                            SwitchListTile(
+                              value: isActive,
+                              contentPadding: EdgeInsets.zero,
+                              activeColor: AppColors.primaryDark,
+                              title: const Text(
+                                'Active product',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                'When active, this product is visible in the store catalog.',
+                              ),
+                              onChanged: (value) {
+                                setModalState(() => isActive = value);
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            if (isMobile)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  OutlinedButton(
+                                    onPressed: () => Navigator.pop(
+                                      dialogContext,
+                                    ),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryDark,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 18,
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                    onPressed: () => saveProduct(
+                                      dialogContext,
+                                      setModalState,
+                                    ),
+                                    icon: Icon(
+                                      isEdit
+                                          ? Icons.save_rounded
+                                          : Icons.add_rounded,
+                                    ),
+                                    label: Text(
+                                      isEdit
+                                          ? 'Save Changes'
+                                          : 'Create Product',
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(
+                                      dialogContext,
+                                    ),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryDark,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 18,
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                    onPressed: () => saveProduct(
+                                      dialogContext,
+                                      setModalState,
+                                    ),
+                                    icon: Icon(
+                                      isEdit
+                                          ? Icons.save_rounded
+                                          : Icons.add_rounded,
+                                    ),
+                                    label: Text(
+                                      isEdit
+                                          ? 'Save Changes'
+                                          : 'Create Product',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    String productId,
+    String productName,
+  ) async {
+    final provider = context.read<ProductManagementProvider>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('Delete Product'),
+        content: Text('Are you sure you want to delete "$productName"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorColor,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      provider.deleteProduct(productId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product deleted')),
+        );
+      }
+    }
   }
 
   Widget _tableHeader() {
@@ -594,8 +1306,8 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
         color: AppColors.primaryDark.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        children: const [
+      child: const Row(
+        children: [
           Expanded(flex: 3, child: _HeaderText('Product')),
           Expanded(flex: 2, child: _HeaderText('Category / SKU')),
           Expanded(flex: 1, child: _HeaderText('Price')),
@@ -634,51 +1346,10 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
             flex: 3,
             child: Row(
               children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primaryLight.withOpacity(0.9),
-                        AppColors.primaryDark.withOpacity(0.8),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.music_note_rounded,
-                    color: Colors.white,
-                  ),
-                ),
+                _productThumb(product.image),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        product.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textMedium,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: _productTitleDescription(product),
                 ),
               ],
             ),
@@ -808,47 +1479,9 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
           children: [
             Row(
               children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primaryLight.withOpacity(0.9),
-                        AppColors.primaryDark.withOpacity(0.8),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child:
-                      const Icon(Icons.music_note_rounded, color: Colors.white),
-                ),
+                _productThumb(product.image, size: 50),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        product.sku,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                Expanded(child: _productTitleDescription(product)),
               ],
             ),
             const SizedBox(height: 14),
@@ -857,7 +1490,9 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
               runSpacing: 8,
               children: [
                 _smallBadge(
-                    label: product.category, color: AppColors.accentColor),
+                  label: product.category,
+                  color: AppColors.accentColor,
+                ),
                 _smallBadge(
                   label: product.isActive ? 'Active' : 'Inactive',
                   color: product.isActive
@@ -942,666 +1577,66 @@ class _ProductsManagementScreenState extends State<ProductsManagementScreen> {
     );
   }
 
-  Future<void> _confirmDelete(
-    BuildContext context,
-    String productId,
-    String productName,
-  ) async {
-    final provider = context.read<ProductManagementProvider>();
+  Widget _productThumb(String image, {double size = 52}) {
+    final isNetwork = image.startsWith('http');
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Delete Product'),
-        content: Text('Are you sure you want to delete "$productName"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primaryLight.withOpacity(0.9),
+              AppColors.primaryDark.withOpacity(0.8),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.errorColor,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
+        ),
+        child: isNetwork
+            ? Image.network(
+                image,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.music_note_rounded,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(
+                Icons.music_note_rounded,
+                color: Colors.white,
+              ),
       ),
     );
-
-    if (confirmed == true) {
-      provider.deleteProduct(productId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product deleted')),
-        );
-      }
-    }
   }
 
-  Future<void> _openProductDialog(
-    BuildContext context, {
-    AdminProduct? product,
-  }) async {
-    final provider = context.read<ProductManagementProvider>();
-    final isEdit = product != null;
-    final isMobile = AdminResponsive.isMobile(context);
-
-    final nameCtrl = TextEditingController(text: product?.name ?? '');
-    final descriptionCtrl =
-        TextEditingController(text: product?.description ?? '');
-    final priceCtrl = TextEditingController(
-      text: product != null ? product.price.toString() : '',
+  Widget _productTitleDescription(AdminProduct product) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          product.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+            color: AppColors.textDark,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          product.description,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textMedium,
+            height: 1.35,
+          ),
+        ),
+      ],
     );
-    final stockCtrl = TextEditingController(
-      text: product != null ? product.stock.toString() : '',
-    );
-    final ratingCtrl = TextEditingController(
-      text: product != null ? product.rating.toString() : '4.5',
-    );
-    final reviewsCtrl = TextEditingController(
-      text: product != null ? product.reviews.toString() : '0',
-    );
-    final skuCtrl = TextEditingController(text: product?.sku ?? '');
-    final imageCtrl = TextEditingController(text: product?.image ?? '');
-    final tagsCtrl = TextEditingController(
-      text: product?.tags.join(', ') ?? '',
-    );
-
-    String selectedCategory = product?.category ??
-        (provider.categories.length > 1 ? provider.categories[1] : 'General');
-    bool isActive = product?.isActive ?? true;
-
-    final formKey = GlobalKey<FormState>();
-
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              insetPadding: EdgeInsets.all(isMobile ? 12 : 24),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(26),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: isMobile ? double.infinity : 760,
-                    ),
-                    padding: EdgeInsets.all(isMobile ? 16 : 24),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.92),
-                      borderRadius: BorderRadius.circular(26),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.55),
-                      ),
-                    ),
-                    child: Form(
-                      key: formKey,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    isEdit ? 'Edit Product' : 'Add Product',
-                                    style: TextStyle(
-                                      fontSize: isMobile ? 20 : 24,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.textDark,
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.close_rounded),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Update catalog details, pricing, visibility, and inventory.',
-                              style: TextStyle(color: AppColors.textMedium),
-                            ),
-                            const SizedBox(height: 20),
-                            if (isMobile)
-                              Column(
-                                children: [
-                                  _fieldShell(
-                                    child: TextFormField(
-                                      controller: nameCtrl,
-                                      decoration: _inputDecoration(
-                                          hint: 'Product name'),
-                                      validator: (value) =>
-                                          value == null || value.trim().isEmpty
-                                              ? 'Required'
-                                              : null,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _fieldShell(
-                                    child: DropdownButtonFormField<String>(
-                                      value: selectedCategory,
-                                      decoration: _inputDecoration(
-                                        hint: 'Category',
-                                      ),
-                                      items: provider.categories
-                                          .where((c) => c != 'All')
-                                          .map(
-                                            (category) => DropdownMenuItem(
-                                              value: category,
-                                              child: Text(category),
-                                            ),
-                                          )
-                                          .toList(),
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          setModalState(
-                                            () => selectedCategory = value,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _fieldShell(
-                                    child: TextFormField(
-                                      controller: skuCtrl,
-                                      decoration: _inputDecoration(hint: 'SKU'),
-                                      validator: (value) =>
-                                          value == null || value.trim().isEmpty
-                                              ? 'Required'
-                                              : null,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _fieldShell(
-                                    child: TextFormField(
-                                      controller: priceCtrl,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                      decoration:
-                                          _inputDecoration(hint: 'Price'),
-                                      validator: (value) {
-                                        if (value == null ||
-                                            value.trim().isEmpty) {
-                                          return 'Required';
-                                        }
-                                        if (double.tryParse(value) == null) {
-                                          return 'Invalid';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _fieldShell(
-                                    child: TextFormField(
-                                      controller: stockCtrl,
-                                      keyboardType: TextInputType.number,
-                                      decoration:
-                                          _inputDecoration(hint: 'Stock'),
-                                      validator: (value) {
-                                        if (value == null ||
-                                            value.trim().isEmpty) {
-                                          return 'Required';
-                                        }
-                                        if (int.tryParse(value) == null) {
-                                          return 'Invalid';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _fieldShell(
-                                    child: TextFormField(
-                                      controller: ratingCtrl,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                      decoration:
-                                          _inputDecoration(hint: 'Rating'),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _fieldShell(
-                                    child: TextFormField(
-                                      controller: reviewsCtrl,
-                                      keyboardType: TextInputType.number,
-                                      decoration:
-                                          _inputDecoration(hint: 'Reviews'),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _fieldShell(
-                                    child: TextFormField(
-                                      controller: imageCtrl,
-                                      decoration: _inputDecoration(
-                                        hint: 'Image path (optional)',
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _fieldShell(
-                                    child: TextFormField(
-                                      controller: descriptionCtrl,
-                                      minLines: 3,
-                                      maxLines: 5,
-                                      decoration: _inputDecoration(
-                                        hint: 'Description',
-                                      ),
-                                      validator: (value) =>
-                                          value == null || value.trim().isEmpty
-                                              ? 'Required'
-                                              : null,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _fieldShell(
-                                    child: TextFormField(
-                                      controller: tagsCtrl,
-                                      decoration: _inputDecoration(
-                                        hint: 'Tags separated by comma',
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              Wrap(
-                                spacing: 14,
-                                runSpacing: 14,
-                                children: [
-                                  _fieldShell(
-                                    width: 340,
-                                    child: TextFormField(
-                                      controller: nameCtrl,
-                                      decoration: _inputDecoration(
-                                          hint: 'Product name'),
-                                      validator: (value) =>
-                                          value == null || value.trim().isEmpty
-                                              ? 'Required'
-                                              : null,
-                                    ),
-                                  ),
-                                  _fieldShell(
-                                    width: 220,
-                                    child: DropdownButtonFormField<String>(
-                                      value: selectedCategory,
-                                      decoration: _inputDecoration(
-                                        hint: 'Category',
-                                      ),
-                                      items: provider.categories
-                                          .where((c) => c != 'All')
-                                          .map(
-                                            (category) => DropdownMenuItem(
-                                              value: category,
-                                              child: Text(category),
-                                            ),
-                                          )
-                                          .toList(),
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          setModalState(
-                                            () => selectedCategory = value,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  _fieldShell(
-                                    width: 140,
-                                    child: TextFormField(
-                                      controller: skuCtrl,
-                                      decoration: _inputDecoration(hint: 'SKU'),
-                                      validator: (value) =>
-                                          value == null || value.trim().isEmpty
-                                              ? 'Required'
-                                              : null,
-                                    ),
-                                  ),
-                                  _fieldShell(
-                                    width: 220,
-                                    child: TextFormField(
-                                      controller: priceCtrl,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                      decoration:
-                                          _inputDecoration(hint: 'Price'),
-                                      validator: (value) {
-                                        if (value == null ||
-                                            value.trim().isEmpty) {
-                                          return 'Required';
-                                        }
-                                        if (double.tryParse(value) == null) {
-                                          return 'Invalid';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  _fieldShell(
-                                    width: 180,
-                                    child: TextFormField(
-                                      controller: stockCtrl,
-                                      keyboardType: TextInputType.number,
-                                      decoration:
-                                          _inputDecoration(hint: 'Stock'),
-                                      validator: (value) {
-                                        if (value == null ||
-                                            value.trim().isEmpty) {
-                                          return 'Required';
-                                        }
-                                        if (int.tryParse(value) == null) {
-                                          return 'Invalid';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  _fieldShell(
-                                    width: 160,
-                                    child: TextFormField(
-                                      controller: ratingCtrl,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                      decoration:
-                                          _inputDecoration(hint: 'Rating'),
-                                    ),
-                                  ),
-                                  _fieldShell(
-                                    width: 160,
-                                    child: TextFormField(
-                                      controller: reviewsCtrl,
-                                      keyboardType: TextInputType.number,
-                                      decoration:
-                                          _inputDecoration(hint: 'Reviews'),
-                                    ),
-                                  ),
-                                  _fieldShell(
-                                    width: 520,
-                                    child: TextFormField(
-                                      controller: imageCtrl,
-                                      decoration: _inputDecoration(
-                                        hint: 'Image path (optional)',
-                                      ),
-                                    ),
-                                  ),
-                                  _fieldShell(
-                                    width: 700,
-                                    child: TextFormField(
-                                      controller: descriptionCtrl,
-                                      minLines: 3,
-                                      maxLines: 5,
-                                      decoration: _inputDecoration(
-                                        hint: 'Description',
-                                      ),
-                                      validator: (value) =>
-                                          value == null || value.trim().isEmpty
-                                              ? 'Required'
-                                              : null,
-                                    ),
-                                  ),
-                                  _fieldShell(
-                                    width: 700,
-                                    child: TextFormField(
-                                      controller: tagsCtrl,
-                                      decoration: _inputDecoration(
-                                        hint: 'Tags separated by comma',
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            const SizedBox(height: 18),
-                            SwitchListTile(
-                              value: isActive,
-                              contentPadding: EdgeInsets.zero,
-                              activeColor: AppColors.primaryDark,
-                              title: const Text(
-                                'Active product',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              subtitle: const Text(
-                                'When active, this product is visible in the store catalog.',
-                              ),
-                              onChanged: (value) {
-                                setModalState(() => isActive = value);
-                              },
-                            ),
-                            const SizedBox(height: 20),
-                            if (isMobile)
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  OutlinedButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryDark,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 18,
-                                        vertical: 14,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      if (!formKey.currentState!.validate()) {
-                                        return;
-                                      }
-
-                                      final now = DateTime.now();
-                                      final tags = tagsCtrl.text
-                                          .split(',')
-                                          .map((e) => e.trim())
-                                          .where((e) => e.isNotEmpty)
-                                          .toList();
-
-                                      final newProduct = AdminProduct(
-                                        id: product?.id ??
-                                            DateTime.now()
-                                                .millisecondsSinceEpoch
-                                                .toString(),
-                                        name: nameCtrl.text.trim(),
-                                        description:
-                                            descriptionCtrl.text.trim(),
-                                        price:
-                                            double.parse(priceCtrl.text.trim()),
-                                        originalPrice: product?.originalPrice,
-                                        category: selectedCategory,
-                                        image: imageCtrl.text.trim().isEmpty
-                                            ? 'assets/images/product.png'
-                                            : imageCtrl.text.trim(),
-                                        stock: int.parse(stockCtrl.text.trim()),
-                                        rating: double.tryParse(
-                                              ratingCtrl.text.trim(),
-                                            ) ??
-                                            4.5,
-                                        reviews: int.tryParse(
-                                              reviewsCtrl.text.trim(),
-                                            ) ??
-                                            0,
-                                        isActive: isActive,
-                                        createdAt: product?.createdAt ?? now,
-                                        updatedAt: now,
-                                        tags: tags,
-                                        sku: skuCtrl.text.trim(),
-                                      );
-
-                                      if (isEdit) {
-                                        provider.updateProduct(newProduct);
-                                      } else {
-                                        provider.addProduct(newProduct);
-                                      }
-
-                                      Navigator.pop(context);
-
-                                      ScaffoldMessenger.of(this.context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            isEdit
-                                                ? 'Product updated'
-                                                : 'Product added',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    icon: Icon(
-                                      isEdit
-                                          ? Icons.save_rounded
-                                          : Icons.add_rounded,
-                                    ),
-                                    label: Text(
-                                      isEdit
-                                          ? 'Save Changes'
-                                          : 'Create Product',
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryDark,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 18,
-                                        vertical: 14,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      if (!formKey.currentState!.validate()) {
-                                        return;
-                                      }
-
-                                      final now = DateTime.now();
-                                      final tags = tagsCtrl.text
-                                          .split(',')
-                                          .map((e) => e.trim())
-                                          .where((e) => e.isNotEmpty)
-                                          .toList();
-
-                                      final newProduct = AdminProduct(
-                                        id: product?.id ??
-                                            DateTime.now()
-                                                .millisecondsSinceEpoch
-                                                .toString(),
-                                        name: nameCtrl.text.trim(),
-                                        description:
-                                            descriptionCtrl.text.trim(),
-                                        price:
-                                            double.parse(priceCtrl.text.trim()),
-                                        originalPrice: product?.originalPrice,
-                                        category: selectedCategory,
-                                        image: imageCtrl.text.trim().isEmpty
-                                            ? 'assets/images/product.png'
-                                            : imageCtrl.text.trim(),
-                                        stock: int.parse(stockCtrl.text.trim()),
-                                        rating: double.tryParse(
-                                              ratingCtrl.text.trim(),
-                                            ) ??
-                                            4.5,
-                                        reviews: int.tryParse(
-                                              reviewsCtrl.text.trim(),
-                                            ) ??
-                                            0,
-                                        isActive: isActive,
-                                        createdAt: product?.createdAt ?? now,
-                                        updatedAt: now,
-                                        tags: tags,
-                                        sku: skuCtrl.text.trim(),
-                                      );
-
-                                      if (isEdit) {
-                                        provider.updateProduct(newProduct);
-                                      } else {
-                                        provider.addProduct(newProduct);
-                                      }
-
-                                      Navigator.pop(context);
-
-                                      ScaffoldMessenger.of(this.context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            isEdit
-                                                ? 'Product updated'
-                                                : 'Product added',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    icon: Icon(
-                                      isEdit
-                                          ? Icons.save_rounded
-                                          : Icons.add_rounded,
-                                    ),
-                                    label: Text(
-                                      isEdit
-                                          ? 'Save Changes'
-                                          : 'Create Product',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    nameCtrl.dispose();
-    descriptionCtrl.dispose();
-    priceCtrl.dispose();
-    stockCtrl.dispose();
-    ratingCtrl.dispose();
-    reviewsCtrl.dispose();
-    skuCtrl.dispose();
-    imageCtrl.dispose();
-    tagsCtrl.dispose();
   }
 
   Widget _fieldShell({double? width, required Widget child}) {

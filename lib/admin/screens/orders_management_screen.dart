@@ -2,8 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
-import '../models/admin_user_management_model.dart';
-import '../providers/user_management_provider.dart';
+import '../models/order_analytics_model.dart';
+import '../providers/order_management_provider.dart';
 import '../utils/admin_responsive.dart';
 
 class OrdersManagementScreen extends StatefulWidget {
@@ -21,7 +21,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserManagementProvider>().loadCustomers();
+      context.read<OrderManagementProvider>().loadOrders();
     });
   }
 
@@ -31,19 +31,56 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
     super.dispose();
   }
 
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+        return Colors.blue;
+      case 'shipped':
+        return Colors.purple;
+      case 'delivered':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return AppColors.textMedium;
+    }
+  }
+
+  IconData _statusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Icons.schedule_rounded;
+      case 'processing':
+        return Icons.sync_rounded;
+      case 'shipped':
+        return Icons.local_shipping_rounded;
+      case 'delivered':
+        return Icons.check_circle_rounded;
+      case 'cancelled':
+        return Icons.cancel_rounded;
+      default:
+        return Icons.receipt_long_rounded;
+    }
+  }
+
+  bool _isCancelled(AdminOrder order) =>
+      order.status.toLowerCase() == 'cancelled';
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserManagementProvider>(
+    return Consumer<OrderManagementProvider>(
       builder: (context, provider, _) {
         final isMobile = AdminResponsive.isMobile(context);
-        final customers = provider.customers;
-        final totalCustomers = provider.totalCustomers;
-        final activeCustomers = provider.activeCustomers;
-        final suspendedCustomers = totalCustomers - activeCustomers;
-        final totalSpent = customers.fold<double>(
-          0,
-          (sum, customer) => sum + customer.totalSpent,
-        );
+        final orders = provider.orders;
+        final totalOrders = orders.length;
+        final pendingOrders =
+            orders.where((o) => o.status.toLowerCase() == 'pending').length;
+        final processingOrders =
+            orders.where((o) => o.status.toLowerCase() == 'processing').length;
+        final cancelledOrders =
+            orders.where((o) => o.status.toLowerCase() == 'cancelled').length;
 
         return Container(
           decoration: const BoxDecoration(
@@ -68,38 +105,38 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                   Column(
                     children: [
                       _statCard(
-                        title: 'Total Customers',
-                        value: '$totalCustomers',
-                        subtitle: 'Registered accounts',
-                        icon: Icons.group_rounded,
+                        title: 'Total Orders',
+                        value: '$totalOrders',
+                        subtitle: 'All visible orders',
+                        icon: Icons.receipt_long_rounded,
                         color: AppColors.primaryDark,
                         fullWidth: true,
                       ),
                       const SizedBox(height: 12),
                       _statCard(
-                        title: 'Active',
-                        value: '$activeCustomers',
-                        subtitle: 'Currently active',
-                        icon: Icons.verified_user_rounded,
-                        color: AppColors.successColor,
+                        title: 'Pending',
+                        value: '$pendingOrders',
+                        subtitle: 'Awaiting action',
+                        icon: Icons.schedule_rounded,
+                        color: Colors.orange,
                         fullWidth: true,
                       ),
                       const SizedBox(height: 12),
                       _statCard(
-                        title: 'Suspended',
-                        value: '$suspendedCustomers',
-                        subtitle: 'Restricted accounts',
-                        icon: Icons.block_rounded,
-                        color: AppColors.warningColor,
+                        title: 'Processing',
+                        value: '$processingOrders',
+                        subtitle: 'Being handled',
+                        icon: Icons.sync_rounded,
+                        color: Colors.blue,
                         fullWidth: true,
                       ),
                       const SizedBox(height: 12),
                       _statCard(
-                        title: 'Customer Value',
-                        value: '₱${totalSpent.toStringAsFixed(0)}',
-                        subtitle: 'Combined visible spend',
-                        icon: Icons.payments_rounded,
-                        color: AppColors.accentColor,
+                        title: 'Cancelled',
+                        value: '$cancelledOrders',
+                        subtitle: 'Stopped orders',
+                        icon: Icons.cancel_rounded,
+                        color: Colors.red,
                         fullWidth: true,
                       ),
                     ],
@@ -110,32 +147,32 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                     runSpacing: 16,
                     children: [
                       _statCard(
-                        title: 'Total Customers',
-                        value: '$totalCustomers',
-                        subtitle: 'Registered accounts',
-                        icon: Icons.group_rounded,
+                        title: 'Total Orders',
+                        value: '$totalOrders',
+                        subtitle: 'All visible orders',
+                        icon: Icons.receipt_long_rounded,
                         color: AppColors.primaryDark,
                       ),
                       _statCard(
-                        title: 'Active',
-                        value: '$activeCustomers',
-                        subtitle: 'Currently active',
-                        icon: Icons.verified_user_rounded,
-                        color: AppColors.successColor,
+                        title: 'Pending',
+                        value: '$pendingOrders',
+                        subtitle: 'Awaiting action',
+                        icon: Icons.schedule_rounded,
+                        color: Colors.orange,
                       ),
                       _statCard(
-                        title: 'Suspended',
-                        value: '$suspendedCustomers',
-                        subtitle: 'Restricted accounts',
-                        icon: Icons.block_rounded,
-                        color: AppColors.warningColor,
+                        title: 'Processing',
+                        value: '$processingOrders',
+                        subtitle: 'Being handled',
+                        icon: Icons.sync_rounded,
+                        color: Colors.blue,
                       ),
                       _statCard(
-                        title: 'Customer Value',
-                        value: '₱${totalSpent.toStringAsFixed(0)}',
-                        subtitle: 'Combined visible spend',
-                        icon: Icons.payments_rounded,
-                        color: AppColors.accentColor,
+                        title: 'Cancelled',
+                        value: '$cancelledOrders',
+                        subtitle: 'Stopped orders',
+                        icon: Icons.cancel_rounded,
+                        color: Colors.red,
                       ),
                     ],
                   ),
@@ -147,9 +184,9 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                       if (isMobile) ...[
                         TextField(
                           controller: _searchCtrl,
-                          onChanged: provider.searchCustomers,
+                          onChanged: provider.searchOrders,
                           decoration: _inputDecoration(
-                            hint: 'Search by name or email...',
+                            hint: 'Search by order ID, name, email...',
                             prefixIcon: const Icon(Icons.search_rounded),
                           ),
                         ),
@@ -164,20 +201,17 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                               borderRadius: BorderRadius.circular(16),
                               icon:
                                   const Icon(Icons.keyboard_arrow_down_rounded),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'All',
-                                  child: Text('All Customers'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Active',
-                                  child: Text('Active'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Suspended',
-                                  child: Text('Suspended'),
-                                ),
-                              ],
+                              items: provider.statuses
+                                  .map(
+                                    (status) => DropdownMenuItem(
+                                      value: status,
+                                      child: Text(status == 'All'
+                                          ? 'All Orders'
+                                          : status[0].toUpperCase() +
+                                              status.substring(1)),
+                                    ),
+                                  )
+                                  .toList(),
                               onChanged: (value) {
                                 if (value != null) {
                                   setState(() => _selectedFilter = value);
@@ -194,12 +228,12 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             SizedBox(
-                              width: 320,
+                              width: 340,
                               child: TextField(
                                 controller: _searchCtrl,
-                                onChanged: provider.searchCustomers,
+                                onChanged: provider.searchOrders,
                                 decoration: _inputDecoration(
-                                  hint: 'Search by name or email...',
+                                  hint: 'Search by order ID, name, email...',
                                   prefixIcon: const Icon(Icons.search_rounded),
                                 ),
                               ),
@@ -211,20 +245,17 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 icon: const Icon(
                                     Icons.keyboard_arrow_down_rounded),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'All',
-                                    child: Text('All Customers'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Active',
-                                    child: Text('Active'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Suspended',
-                                    child: Text('Suspended'),
-                                  ),
-                                ],
+                                items: provider.statuses
+                                    .map(
+                                      (status) => DropdownMenuItem(
+                                        value: status,
+                                        child: Text(status == 'All'
+                                            ? 'All Orders'
+                                            : status[0].toUpperCase() +
+                                                status.substring(1)),
+                                      ),
+                                    )
+                                    .toList(),
                                 onChanged: (value) {
                                   if (value != null) {
                                     setState(() => _selectedFilter = value);
@@ -236,23 +267,6 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                           ],
                         ),
                       ],
-                      const SizedBox(height: 18),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          _chip(
-                            label: '${customers.length} shown',
-                            color: AppColors.primaryDark,
-                            icon: Icons.filter_alt_rounded,
-                          ),
-                          _chip(
-                            label: '$activeCustomers active',
-                            color: AppColors.successColor,
-                            icon: Icons.check_circle_rounded,
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -264,22 +278,22 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                       child: CircularProgressIndicator(),
                     ),
                   )
-                else if (customers.isEmpty)
+                else if (orders.isEmpty)
                   _glassCard(
-                    child: SizedBox(
+                    child: const SizedBox(
                       width: double.infinity,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 42),
+                        padding: EdgeInsets.symmetric(vertical: 42),
                         child: Column(
-                          children: const [
+                          children: [
                             Icon(
-                              Icons.people_outline_rounded,
+                              Icons.receipt_long_rounded,
                               size: 58,
                               color: AppColors.textLight,
                             ),
                             SizedBox(height: 14),
                             Text(
-                              'No customers found',
+                              'No orders found',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
@@ -298,32 +312,21 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                   )
                 else
                   Column(
-                    children: customers
+                    children: orders
                         .map(
-                          (customer) => Padding(
+                          (order) => Padding(
                             padding: const EdgeInsets.only(bottom: 14),
-                            child: _customerCard(
-                              customer: customer,
+                            child: _orderCard(
+                              order: order,
                               isMobile: isMobile,
-                              onView: () =>
-                                  _showCustomerDetails(context, customer),
-                              onToggleStatus: () {
-                                if (customer.isActive) {
-                                  provider.suspendCustomer(customer.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Customer suspended'),
-                                    ),
-                                  );
-                                } else {
-                                  provider.activateCustomer(customer.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Customer activated'),
-                                    ),
-                                  );
-                                }
-                              },
+                              onView: () => _showOrderDetails(context, order),
+                              onUpdateStatus: _isCancelled(order)
+                                  ? null
+                                  : () =>
+                                      _showUpdateStatusDialog(context, order),
+                              onUpdateTracking: _isCancelled(order)
+                                  ? null
+                                  : () => _showTrackingDialog(context, order),
                             ),
                           ),
                         )
@@ -343,7 +346,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Customers',
+            'Orders',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
@@ -352,118 +355,50 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'View customer profiles, spending behavior, account status, and profile history.',
+            'Review orders, monitor their status, and handle fulfilment updates.',
             style: TextStyle(
               fontSize: 13,
               height: 1.4,
               color: AppColors.textMedium,
             ),
           ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryDark, AppColors.primaryMid],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryDark.withOpacity(0.20),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.person_search_rounded,
-                    color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text(
-                  'Customer Control',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       );
     }
 
-    return Row(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Customers',
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textDark,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'View customer profiles, spending behavior, account status, and profile history.',
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.4,
-                  color: AppColors.textMedium,
-                ),
-              ),
-            ],
+        Text(
+          'Orders',
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textDark,
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.primaryDark, AppColors.primaryMid],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryDark.withOpacity(0.20),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.person_search_rounded, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Customer Control',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+        SizedBox(height: 8),
+        Text(
+          'Review orders, monitor their status, and handle fulfilment updates.',
+          style: TextStyle(
+            fontSize: 13,
+            height: 1.4,
+            color: AppColors.textMedium,
           ),
         ),
       ],
     );
   }
 
-  Widget _customerCard({
-    required AdminCustomerUser customer,
+  Widget _orderCard({
+    required AdminOrder order,
     required bool isMobile,
     required VoidCallback onView,
-    required VoidCallback onToggleStatus,
+    required VoidCallback? onUpdateStatus,
+    required VoidCallback? onUpdateTracking,
   }) {
-    final statusColor =
-        customer.isActive ? AppColors.successColor : AppColors.warningColor;
+    final statusColor = _statusColor(order.status);
+    final cancelled = _isCancelled(order);
 
     return _glassCard(
       padding: EdgeInsets.all(isMobile ? 16 : 18),
@@ -472,19 +407,14 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: AppColors.primaryDark.withOpacity(0.14),
-                child: Text(
-                  customer.name.isNotEmpty
-                      ? customer.name[0].toUpperCase()
-                      : '?',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primaryDark,
-                  ),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
+                child: Icon(_statusIcon(order.status), color: statusColor),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -492,7 +422,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      customer.name,
+                      order.id,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -501,7 +431,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      customer.email,
+                      order.customerName,
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textMedium,
@@ -510,7 +440,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      customer.phone ?? 'No phone number',
+                      order.customerEmail,
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textLight,
@@ -519,20 +449,41 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                   ],
                 ),
               ),
-              if (!isMobile)
+              if (!isMobile) ...[
                 _smallBadge(
-                  label: customer.isActive ? 'Active' : 'Suspended',
+                  label: order.status.toUpperCase(),
                   color: statusColor,
                 ),
+              ],
             ],
           ),
           if (isMobile) ...[
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _smallBadge(
+                    label: order.status.toUpperCase(),
+                    color: statusColor,
+                  ),
+                  if (cancelled)
+                    _smallBadge(
+                      label: 'Cancelled by customer',
+                      color: Colors.red,
+                    ),
+                ],
+              ),
+            ),
+          ] else if (cancelled) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
               child: _smallBadge(
-                label: customer.isActive ? 'Active' : 'Suspended',
-                color: statusColor,
+                label: 'Cancelled by customer',
+                color: Colors.red,
               ),
             ),
           ],
@@ -542,15 +493,15 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               children: [
                 Expanded(
                   child: _miniInfo(
-                    title: 'Orders',
-                    value: '${customer.totalOrders}',
+                    title: 'Total',
+                    value: '₱${order.totalAmount.toStringAsFixed(2)}',
+                    valueColor: AppColors.primaryDark,
                   ),
                 ),
                 Expanded(
                   child: _miniInfo(
-                    title: 'Spent',
-                    value: '₱${customer.totalSpent.toStringAsFixed(2)}',
-                    valueColor: AppColors.primaryDark,
+                    title: 'Payment',
+                    value: order.paymentStatus,
                   ),
                 ),
               ],
@@ -560,15 +511,17 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               children: [
                 Expanded(
                   child: _miniInfo(
-                    title: 'Joined',
-                    value: _formatDate(customer.registeredDate),
+                    title: 'Items',
+                    value: '${order.items.length}',
                   ),
                 ),
                 Expanded(
                   child: _miniInfo(
-                    title: 'Favorites',
-                    value: '${customer.favoriteProducts.length}',
-                    valueColor: AppColors.accentColor,
+                    title: 'Tracking',
+                    value: (order.trackingNumber == null ||
+                            order.trackingNumber!.trim().isEmpty)
+                        ? 'Not set'
+                        : order.trackingNumber!,
                   ),
                 ),
               ],
@@ -578,37 +531,39 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
               children: [
                 Expanded(
                   child: _miniInfo(
-                    title: 'Orders',
-                    value: '${customer.totalOrders}',
-                  ),
-                ),
-                Expanded(
-                  child: _miniInfo(
-                    title: 'Spent',
-                    value: '₱${customer.totalSpent.toStringAsFixed(2)}',
+                    title: 'Total',
+                    value: '₱${order.totalAmount.toStringAsFixed(2)}',
                     valueColor: AppColors.primaryDark,
                   ),
                 ),
                 Expanded(
                   child: _miniInfo(
-                    title: 'Joined',
-                    value: _formatDate(customer.registeredDate),
+                    title: 'Payment',
+                    value: order.paymentStatus,
                   ),
                 ),
                 Expanded(
                   child: _miniInfo(
-                    title: 'Favorites',
-                    value: '${customer.favoriteProducts.length}',
-                    valueColor: AppColors.accentColor,
+                    title: 'Items',
+                    value: '${order.items.length}',
+                  ),
+                ),
+                Expanded(
+                  child: _miniInfo(
+                    title: 'Tracking',
+                    value: (order.trackingNumber == null ||
+                            order.trackingNumber!.trim().isEmpty)
+                        ? 'Not set'
+                        : order.trackingNumber!,
                   ),
                 ),
               ],
             ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Account ID: ${customer.id}',
+              'Placed: ${_formatDate(order.createdAt)}',
               style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.textMedium,
@@ -634,31 +589,47 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                   ),
                   icon: const Icon(Icons.visibility_rounded, size: 18),
                   label: const Text(
-                    'View Profile',
+                    'View Details',
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton.icon(
-                  onPressed: onToggleStatus,
+                  onPressed: onUpdateStatus,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: customer.isActive
-                        ? AppColors.warningColor
-                        : AppColors.successColor,
+                    backgroundColor: onUpdateStatus == null
+                        ? AppColors.textLight
+                        : AppColors.warningColor,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  icon: Icon(
-                    customer.isActive
-                        ? Icons.block_rounded
-                        : Icons.check_circle_rounded,
-                    size: 18,
-                  ),
+                  icon: const Icon(Icons.edit_rounded, size: 18),
                   label: Text(
-                    customer.isActive ? 'Suspend' : 'Activate',
+                    onUpdateStatus == null ? 'Status Locked' : 'Update Status',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  onPressed: onUpdateTracking,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: onUpdateTracking == null
+                        ? AppColors.textLight
+                        : AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.local_shipping_rounded, size: 18),
+                  label: Text(
+                    onUpdateTracking == null
+                        ? 'Tracking Locked'
+                        : 'Update Tracking',
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -681,7 +652,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                     ),
                     icon: const Icon(Icons.visibility_rounded, size: 18),
                     label: const Text(
-                      'View Profile',
+                      'View Details',
                       style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
@@ -689,25 +660,45 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: onToggleStatus,
+                    onPressed: onUpdateStatus,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: customer.isActive
-                          ? AppColors.warningColor
-                          : AppColors.successColor,
+                      backgroundColor: onUpdateStatus == null
+                          ? AppColors.textLight
+                          : AppColors.warningColor,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    icon: Icon(
-                      customer.isActive
-                          ? Icons.block_rounded
-                          : Icons.check_circle_rounded,
-                      size: 18,
-                    ),
+                    icon: const Icon(Icons.edit_rounded, size: 18),
                     label: Text(
-                      customer.isActive ? 'Suspend' : 'Activate',
+                      onUpdateStatus == null
+                          ? 'Status Locked'
+                          : 'Update Status',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onUpdateTracking,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: onUpdateTracking == null
+                          ? AppColors.textLight
+                          : AppColors.primaryDark,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.local_shipping_rounded, size: 18),
+                    label: Text(
+                      onUpdateTracking == null
+                          ? 'Tracking Locked'
+                          : 'Update Tracking',
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
@@ -719,381 +710,188 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
     );
   }
 
-  Future<void> _showCustomerDetails(
+  Future<void> _showUpdateStatusDialog(
     BuildContext context,
-    AdminCustomerUser customer,
+    AdminOrder order,
   ) async {
-    final provider = context.read<UserManagementProvider>();
-    final isMobile = AdminResponsive.isMobile(context);
+    final provider = context.read<OrderManagementProvider>();
+    String selectedStatus = order.status;
 
     await showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (_) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.all(isMobile ? 12 : 24),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(26),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: isMobile ? double.infinity : 860,
+      builder: (_) => AlertDialog(
+        title: Text('Update Status - ${order.id}'),
+        content: DropdownButtonFormField<String>(
+          value: selectedStatus,
+          items: provider.statuses
+              .where((e) => e != 'All')
+              .map(
+                (status) => DropdownMenuItem(
+                  value: status,
+                  child: Text(status[0].toUpperCase() + status.substring(1)),
                 ),
-                padding: EdgeInsets.all(isMobile ? 16 : 24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.55),
-                  ),
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              customer.name,
-                              style: TextStyle(
-                                fontSize: isMobile ? 20 : 24,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Review customer identity, spending, favorites, and account activity.',
-                        style: TextStyle(
-                          color: AppColors.textMedium,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      if (isMobile) ...[
-                        _sectionCard(
-                          title: 'Profile',
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _detailRow('Customer ID', customer.id),
-                              _detailRow('Name', customer.name),
-                              _detailRow('Email', customer.email),
-                              _detailRow(
-                                'Phone',
-                                customer.phone ?? 'Not available',
-                              ),
-                              _detailRow(
-                                'Status',
-                                customer.accountStatus,
-                                valueColor: customer.isActive
-                                    ? AppColors.successColor
-                                    : AppColors.warningColor,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _sectionCard(
-                          title: 'Account Summary',
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _detailRow(
-                                'Joined',
-                                _formatDate(customer.registeredDate),
-                              ),
-                              _detailRow(
-                                'Total Orders',
-                                '${customer.totalOrders}',
-                              ),
-                              _detailRow(
-                                'Total Spent',
-                                '₱${customer.totalSpent.toStringAsFixed(2)}',
-                                valueColor: AppColors.primaryDark,
-                              ),
-                              _detailRow(
-                                'Favorites',
-                                '${customer.favoriteProducts.length}',
-                                valueColor: AppColors.accentColor,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ] else
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _sectionCard(
-                                title: 'Profile',
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _detailRow('Customer ID', customer.id),
-                                    _detailRow('Name', customer.name),
-                                    _detailRow('Email', customer.email),
-                                    _detailRow(
-                                      'Phone',
-                                      customer.phone ?? 'Not available',
-                                    ),
-                                    _detailRow(
-                                      'Status',
-                                      customer.accountStatus,
-                                      valueColor: customer.isActive
-                                          ? AppColors.successColor
-                                          : AppColors.warningColor,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: _sectionCard(
-                                title: 'Account Summary',
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _detailRow(
-                                      'Joined',
-                                      _formatDate(customer.registeredDate),
-                                    ),
-                                    _detailRow(
-                                      'Total Orders',
-                                      '${customer.totalOrders}',
-                                    ),
-                                    _detailRow(
-                                      'Total Spent',
-                                      '₱${customer.totalSpent.toStringAsFixed(2)}',
-                                      valueColor: AppColors.primaryDark,
-                                    ),
-                                    _detailRow(
-                                      'Favorites',
-                                      '${customer.favoriteProducts.length}',
-                                      valueColor: AppColors.accentColor,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      const SizedBox(height: 14),
-                      _sectionCard(
-                        title: 'Favorite Products',
-                        child: customer.favoriteProducts.isEmpty
-                            ? const Text(
-                                'No favorite products yet.',
-                                style: TextStyle(
-                                  color: AppColors.textMedium,
-                                ),
-                              )
-                            : Wrap(
-                                spacing: 10,
-                                runSpacing: 10,
-                                children: customer.favoriteProducts
-                                    .map(
-                                      (productId) => _smallBadge(
-                                        label: 'Product $productId',
-                                        color: AppColors.primaryDark,
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                      ),
-                      const SizedBox(height: 14),
-                      _sectionCard(
-                        title: 'Customer Insights',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _insightPanel(
-                              icon: Icons.shopping_bag_rounded,
-                              color: AppColors.primaryDark,
-                              title: 'Purchase Activity',
-                              text:
-                                  '${customer.name} has completed ${customer.totalOrders} order(s).',
-                            ),
-                            const SizedBox(height: 12),
-                            _insightPanel(
-                              icon: Icons.payments_rounded,
-                              color: AppColors.successColor,
-                              title: 'Spending Level',
-                              text:
-                                  'Customer lifetime value is ₱${customer.totalSpent.toStringAsFixed(2)}.',
-                            ),
-                            const SizedBox(height: 12),
-                            _insightPanel(
-                              icon: Icons.favorite_rounded,
-                              color: AppColors.accentColor,
-                              title: 'Interest Pattern',
-                              text:
-                                  '${customer.favoriteProducts.length} favorite product(s) saved in profile data.',
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      if (isMobile)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            OutlinedButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Close'),
-                            ),
-                            const SizedBox(height: 10),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: customer.isActive
-                                    ? AppColors.warningColor
-                                    : AppColors.successColor,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              onPressed: () {
-                                if (customer.isActive) {
-                                  provider.suspendCustomer(customer.id);
-                                } else {
-                                  provider.activateCustomer(customer.id);
-                                }
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(this.context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      customer.isActive
-                                          ? 'Customer suspended'
-                                          : 'Customer activated',
-                                    ),
-                                  ),
-                                );
-                              },
-                              icon: Icon(
-                                customer.isActive
-                                    ? Icons.block_rounded
-                                    : Icons.check_circle_rounded,
-                              ),
-                              label: Text(
-                                customer.isActive
-                                    ? 'Suspend Account'
-                                    : 'Activate Account',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Close'),
-                            ),
-                            const SizedBox(width: 10),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: customer.isActive
-                                    ? AppColors.warningColor
-                                    : AppColors.successColor,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              onPressed: () {
-                                if (customer.isActive) {
-                                  provider.suspendCustomer(customer.id);
-                                } else {
-                                  provider.activateCustomer(customer.id);
-                                }
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(this.context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      customer.isActive
-                                          ? 'Customer suspended'
-                                          : 'Customer activated',
-                                    ),
-                                  ),
-                                );
-                              },
-                              icon: Icon(
-                                customer.isActive
-                                    ? Icons.block_rounded
-                                    : Icons.check_circle_rounded,
-                              ),
-                              label: Text(
-                                customer.isActive
-                                    ? 'Suspend Account'
-                                    : 'Activate Account',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value != null) selectedStatus = value;
+          },
+          decoration: const InputDecoration(
+            labelText: 'Order Status',
           ),
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              provider.updateOrderStatus(order.id, selectedStatus);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Order status updated')),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _sectionCard({
-    required String title,
-    required Widget child,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.74),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.primaryLight.withOpacity(0.16),
+  Future<void> _showTrackingDialog(
+    BuildContext context,
+    AdminOrder order,
+  ) async {
+    final provider = context.read<OrderManagementProvider>();
+    final controller = TextEditingController(text: order.trackingNumber ?? '');
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Tracking - ${order.id}'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Tracking Number',
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              provider.updateTrackingNumber(order.id, controller.text.trim());
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Tracking number updated')),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: AppColors.textDark,
+    );
+  }
+
+  Future<void> _showOrderDetails(
+    BuildContext context,
+    AdminOrder order,
+  ) async {
+    await showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: _glassCard(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        order.id,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _detailRow('Customer', order.customerName),
+                _detailRow('Email', order.customerEmail),
+                _detailRow('Status', order.status),
+                _detailRow('Payment', order.paymentStatus),
+                _detailRow(
+                  'Total',
+                  '₱${order.totalAmount.toStringAsFixed(2)}',
+                  valueColor: AppColors.primaryDark,
+                ),
+                _detailRow(
+                  'Tracking',
+                  (order.trackingNumber == null ||
+                          order.trackingNumber!.isEmpty)
+                      ? 'Not set'
+                      : order.trackingNumber!,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Items',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...order.items.map(
+                  (item) => Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.72),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.shopping_bag_rounded,
+                            color: AppColors.primaryDark),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item.productName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'x${item.quantity}',
+                          style: const TextStyle(
+                            color: AppColors.textMedium,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 14),
-          child,
-        ],
+        ),
       ),
     );
   }
@@ -1106,10 +904,9 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 110,
+            width: 100,
             child: Text(
               label,
               style: const TextStyle(
@@ -1126,61 +923,7 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
                 fontSize: 12,
                 color: valueColor,
                 fontWeight: FontWeight.w800,
-                height: 1.35,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _insightPanel({
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String text,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withOpacity(0.18)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textDark,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  text,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMedium,
-                    height: 1.35,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -1321,38 +1064,6 @@ class _OrdersManagementScreenState extends State<OrdersManagementScreen> {
         ),
       ),
       child: child,
-    );
-  }
-
-  Widget _chip({
-    required String label,
-    required Color color,
-    IconData? icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.11),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withOpacity(0.18)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 15, color: color),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

@@ -8,19 +8,23 @@ class AnalyticsProvider extends ChangeNotifier {
   DashboardStats? _stats;
   bool _isLoading = false;
   String? _error;
-  String _timeRange = '7days'; // 7days, 30days, 90days, 1year
+  String _timeRange = '7days';
 
   DashboardStats? get stats => _stats;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get timeRange => _timeRange;
 
-  void loadAnalytics() {
+  AnalyticsProvider() {
+    loadAnalytics();
+  }
+
+  Future<void> loadAnalytics() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      _stats = _analyticsService.getDashboardStats();
+      _stats = await _analyticsService.getDashboardStats();
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -30,17 +34,17 @@ class AnalyticsProvider extends ChangeNotifier {
     }
   }
 
-  void setTimeRange(String range) {
+  Future<void> setTimeRange(String range) async {
     _timeRange = range;
-    loadAnalytics();
+    await loadAnalytics();
   }
 
-  List<DailySales> getSalesTrend() {
+  Future<List<DailySales>> getSalesTrend() async {
     int days = 7;
     if (_timeRange == '30days') days = 30;
     if (_timeRange == '90days') days = 90;
     if (_timeRange == '1year') days = 365;
 
-    return _analyticsService.getSalesTrendData(days);
+    return await _analyticsService.getSalesTrendData(days);
   }
 }

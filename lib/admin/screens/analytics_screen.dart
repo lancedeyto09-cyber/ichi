@@ -29,7 +29,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       builder: (context, provider, _) {
         final isMobile = AdminResponsive.isMobile(context);
         final stats = provider.stats;
-        final trend = provider.getSalesTrend();
 
         return Container(
           decoration: const BoxDecoration(
@@ -163,7 +162,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   const SizedBox(height: 18),
                                   SizedBox(
                                     height: 190,
-                                    child: _SalesChart(trend: trend),
+                                    child: _salesTrendChart(provider),
                                   ),
                                 ],
                               ),
@@ -260,7 +259,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                         const SizedBox(height: 22),
                                         SizedBox(
                                           height: 260,
-                                          child: _SalesChart(trend: trend),
+                                          child: _salesTrendChart(provider),
                                         ),
                                       ],
                                     ),
@@ -481,6 +480,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
+  Widget _salesTrendChart(AnalyticsProvider provider) {
+    return FutureBuilder<List<DailySales>>(
+      future: provider.getSalesTrend(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Failed to load chart data',
+              style: const TextStyle(color: AppColors.textMedium),
+            ),
+          );
+        }
+
+        final trend = snapshot.data ?? [];
+        return _SalesChart(trend: trend);
+      },
+    );
+  }
+
   Widget _header(AnalyticsProvider provider, bool isMobile) {
     if (isMobile) {
       return Column(
@@ -525,9 +549,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 DropdownMenuItem(value: '90days', child: Text('Last 90 Days')),
                 DropdownMenuItem(value: '1year', child: Text('Last Year')),
               ],
-              onChanged: (value) {
+              onChanged: (value) async {
                 if (value != null) {
-                  provider.setTimeRange(value);
+                  await provider.setTimeRange(value);
                 }
               },
             ),
@@ -582,9 +606,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               DropdownMenuItem(value: '90days', child: Text('Last 90 Days')),
               DropdownMenuItem(value: '1year', child: Text('Last Year')),
             ],
-            onChanged: (value) {
+            onChanged: (value) async {
               if (value != null) {
-                provider.setTimeRange(value);
+                await provider.setTimeRange(value);
               }
             },
           ),
@@ -943,32 +967,36 @@ class _SalesChart extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final chartHeight = constraints.maxHeight - 36;
+        final chartHeight = constraints.maxHeight - 52;
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: trend.map((point) {
-            final height =
+            final rawHeight =
                 maxAmount == 0 ? 0.0 : (point.amount / maxAmount) * chartHeight;
+
+            final safeHeight = rawHeight.clamp(8.0, chartHeight - 8);
 
             return Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 3),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Text(
                       point.amount.toStringAsFixed(0),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 9,
+                        fontSize: 8,
                         color: AppColors.textMedium,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 350),
-                      height: height.clamp(12, chartHeight),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: safeHeight,
+                      constraints: const BoxConstraints(minHeight: 8),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           begin: Alignment.topCenter,
@@ -978,21 +1006,23 @@ class _SalesChart extends StatelessWidget {
                             AppColors.primaryDark,
                           ],
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primaryDark.withOpacity(0.18),
-                            blurRadius: 14,
-                            offset: const Offset(0, 8),
+                            blurRadius: 10,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     Text(
                       _shortLabel(point.date),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         color: AppColors.textMedium,
                         fontWeight: FontWeight.w700,
                       ),

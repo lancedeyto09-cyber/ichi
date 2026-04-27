@@ -12,29 +12,32 @@ class ProductManagementProvider extends ChangeNotifier {
   String _searchQuery = '';
   String _selectedCategory = 'All';
   String _sortBy = 'name';
+  List<String> _categories = ['All'];
 
-  // Getters
   List<AdminProduct> get products => _filteredProducts;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
-  List<String> get categories => ['All', ..._productService.getAllCategories()];
+  List<String> get categories => _categories;
 
   ProductManagementProvider() {
     loadProducts();
   }
 
-  void loadProducts() {
+  Future<void> loadProducts() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _products = _productService.getAllProducts();
+      _products = await _productService.getAllProducts();
+      final fetchedCategories = await _productService.getAllCategories();
+      _categories = ['All', ...fetchedCategories];
       _applyFiltersAndSort();
     } catch (e) {
       _error = e.toString();
+      notifyListeners();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -42,7 +45,7 @@ class ProductManagementProvider extends ChangeNotifier {
   }
 
   void searchProducts(String query) {
-    _searchQuery = query;
+    _searchQuery = query.trim();
     _applyFiltersAndSort();
   }
 
@@ -57,61 +60,95 @@ class ProductManagementProvider extends ChangeNotifier {
   }
 
   void _applyFiltersAndSort() {
-    _filteredProducts = List.from(_products);
+    List<AdminProduct> result = List.from(_products);
 
-    // Apply search filter
     if (_searchQuery.isNotEmpty) {
-      _filteredProducts = _productService.searchProducts(_searchQuery);
+      final q = _searchQuery.toLowerCase();
+      result = result.where((p) {
+        return p.name.toLowerCase().contains(q) ||
+            p.sku.toLowerCase().contains(q) ||
+            p.description.toLowerCase().contains(q);
+      }).toList();
     }
 
-    // Apply category filter
     if (_selectedCategory != 'All') {
-      _filteredProducts = _filteredProducts
-          .where((p) => p.category == _selectedCategory)
-          .toList();
+      result = result.where((p) => p.category == _selectedCategory).toList();
     }
 
-    // Apply sorting
-    _sortBy = _sortBy;
     switch (_sortBy) {
       case 'name':
-        _filteredProducts.sort((a, b) => a.name.compareTo(b.name));
+        result.sort((a, b) => a.name.compareTo(b.name));
         break;
       case 'price':
-        _filteredProducts.sort((a, b) => a.price.compareTo(b.price));
+        result.sort((a, b) => a.price.compareTo(b.price));
         break;
       case 'stock':
-        _filteredProducts.sort((a, b) => a.stock.compareTo(b.stock));
+        result.sort((a, b) => a.stock.compareTo(b.stock));
         break;
       case 'rating':
-        _filteredProducts.sort((a, b) => b.rating.compareTo(a.rating));
+        result.sort((a, b) => b.rating.compareTo(a.rating));
         break;
     }
 
+    _filteredProducts = result;
     notifyListeners();
   }
 
-  void addProduct(AdminProduct product) {
-    _productService.addProduct(product);
-    loadProducts();
+  Future<void> addProduct(AdminProduct product) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      await _productService.addProduct(product);
+      await loadProducts();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  void updateProduct(AdminProduct product) {
-    _productService.updateProduct(product);
-    loadProducts();
+  Future<void> updateProduct(AdminProduct product) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      await _productService.updateProduct(product);
+      await loadProducts();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  void deleteProduct(String productId) {
-    _productService.deleteProduct(productId);
-    loadProducts();
+  Future<void> deleteProduct(String productId) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      await _productService.deleteProduct(productId);
+      await loadProducts();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   AdminProduct? getProductById(String id) {
-    return _productService.getProductById(id);
+    try {
+      return _products.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 
   List<AdminProduct> getLowStockProducts() {
-    return _productService.getLowStockProducts(5);
+    return _products.where((p) => p.stock <= 5).toList();
   }
 
   void clearError() {

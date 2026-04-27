@@ -1,7 +1,10 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../constants/app_colors.dart';
+import '../providers/dashboard_provider.dart';
 import '../utils/admin_responsive.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -10,7 +13,11 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = AdminResponsive.isMobile(context);
+    final dashboard = context.watch<DashboardProvider>();
 
+    Future.delayed(Duration.zero, () {
+      context.read<DashboardProvider>().fetchDashboard();
+    });
     final salesCard = _glassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,21 +72,21 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _badge(
-            label: '12 Pending Orders',
+            label: '${dashboard.pendingOrders} Pending Orders',
             color: AppColors.warningColor,
             icon: Icons.schedule_rounded,
           ),
           const SizedBox(height: 12),
           _badge(
-            label: '5 Ready to Ship',
+            label: '${dashboard.deliveredOrders} Delivered Orders',
             color: AppColors.successColor,
-            icon: Icons.local_shipping_rounded,
+            icon: Icons.check_circle_rounded,
           ),
           const SizedBox(height: 12),
           _badge(
-            label: '3 Payment Issues',
+            label: '${dashboard.lowStockCount} Low Stock Items',
             color: AppColors.errorColor,
-            icon: Icons.error_outline_rounded,
+            icon: Icons.warning_amber_rounded,
           ),
         ],
       ),
@@ -109,8 +116,8 @@ class DashboardScreen extends StatelessWidget {
     final recentOrdersCard = _glassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
+        children: [
+          const Text(
             'Recent Orders',
             style: TextStyle(
               fontSize: 18,
@@ -118,27 +125,27 @@ class DashboardScreen extends StatelessWidget {
               color: AppColors.textDark,
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _OrderRow(
-            orderId: '#ORD-1024',
-            customer: 'Lance D.',
-            amount: '₱3,200',
+            orderId: '#TOTAL',
+            customer: 'All Orders',
+            amount: '${dashboard.totalOrders}',
+            status: 'Orders',
+            statusColor: AppColors.primaryDark,
+          ),
+          _OrderRow(
+            orderId: '#PENDING',
+            customer: 'Pending Orders',
+            amount: '${dashboard.pendingOrders}',
             status: 'Pending',
             statusColor: AppColors.warningColor,
           ),
           _OrderRow(
-            orderId: '#ORD-1025',
-            customer: 'Maria S.',
-            amount: '₱6,850',
-            status: 'Paid',
+            orderId: '#DELIVERED',
+            customer: 'Delivered Orders',
+            amount: '${dashboard.deliveredOrders}',
+            status: 'Delivered',
             statusColor: AppColors.successColor,
-          ),
-          _OrderRow(
-            orderId: '#ORD-1026',
-            customer: 'John P.',
-            amount: '₱1,999',
-            status: 'Cancelled',
-            statusColor: AppColors.errorColor,
           ),
         ],
       ),
@@ -147,8 +154,8 @@ class DashboardScreen extends StatelessWidget {
     final lowStockCard = _glassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
+        children: [
+          const Text(
             'Low Stock Alerts',
             style: TextStyle(
               fontSize: 18,
@@ -156,18 +163,14 @@ class DashboardScreen extends StatelessWidget {
               color: AppColors.textDark,
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _StockRow(
-            product: 'Professional Acoustic Guitar',
-            stock: '3 left',
+            product: 'Products with low stock',
+            stock: '${dashboard.lowStockCount} items',
           ),
-          _StockRow(
-            product: 'Digital Synthesizer',
-            stock: '5 left',
-          ),
-          _StockRow(
-            product: 'Drum Set Kit',
-            stock: '2 left',
+          const _StockRow(
+            product: 'Stock threshold',
+            stock: '≤ 5 left',
           ),
         ],
       ),
@@ -190,41 +193,41 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _header(isMobile),
+            _header(context, isMobile),
             const SizedBox(height: 24),
             if (isMobile)
               Column(
-                children: const [
+                children: [
                   _KpiCard(
                     title: 'Total Revenue',
-                    value: '₱128,400',
-                    change: '+12.4%',
+                    value: '₱${dashboard.totalRevenue.toStringAsFixed(2)}',
+                    change: 'Delivered only',
                     icon: Icons.payments_rounded,
                     accent: AppColors.primaryDark,
                     fullWidth: true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _KpiCard(
                     title: 'Orders',
-                    value: '248',
-                    change: '+8.1%',
+                    value: '${dashboard.totalOrders}',
+                    change: 'All orders',
                     icon: Icons.receipt_long_rounded,
                     accent: AppColors.successColor,
                     fullWidth: true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _KpiCard(
-                    title: 'Customers',
-                    value: '1,024',
-                    change: '+5.3%',
-                    icon: Icons.group_rounded,
+                    title: 'Delivered',
+                    value: '${dashboard.deliveredOrders}',
+                    change: 'Completed',
+                    icon: Icons.check_circle_rounded,
                     accent: AppColors.accentColor,
                     fullWidth: true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _KpiCard(
                     title: 'Low Stock',
-                    value: '7 Items',
+                    value: '${dashboard.lowStockCount} Items',
                     change: 'Needs action',
                     icon: Icons.warning_amber_rounded,
                     accent: AppColors.warningColor,
@@ -236,31 +239,31 @@ class DashboardScreen extends StatelessWidget {
               Wrap(
                 spacing: 16,
                 runSpacing: 16,
-                children: const [
+                children: [
                   _KpiCard(
                     title: 'Total Revenue',
-                    value: '₱128,400',
-                    change: '+12.4%',
+                    value: '₱${dashboard.totalRevenue.toStringAsFixed(2)}',
+                    change: 'Delivered only',
                     icon: Icons.payments_rounded,
                     accent: AppColors.primaryDark,
                   ),
                   _KpiCard(
                     title: 'Orders',
-                    value: '248',
-                    change: '+8.1%',
+                    value: '${dashboard.totalOrders}',
+                    change: 'All orders',
                     icon: Icons.receipt_long_rounded,
                     accent: AppColors.successColor,
                   ),
                   _KpiCard(
-                    title: 'Customers',
-                    value: '1,024',
-                    change: '+5.3%',
-                    icon: Icons.group_rounded,
+                    title: 'Delivered',
+                    value: '${dashboard.deliveredOrders}',
+                    change: 'Completed',
+                    icon: Icons.check_circle_rounded,
                     accent: AppColors.accentColor,
                   ),
                   _KpiCard(
                     title: 'Low Stock',
-                    value: '7 Items',
+                    value: '${dashboard.lowStockCount} Items',
                     change: 'Needs action',
                     icon: Icons.warning_amber_rounded,
                     accent: AppColors.warningColor,
@@ -311,7 +314,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _header(bool isMobile) {
+  Widget _header(BuildContext context, bool isMobile) {
     if (isMobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,37 +337,7 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryDark, AppColors.primaryMid],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryDark.withOpacity(0.22),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.auto_graph_rounded, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text(
-                  'This Month',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _monthBadge(),
         ],
       );
     }
@@ -395,38 +368,51 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.primaryDark, AppColors.primaryMid],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryDark.withOpacity(0.22),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.auto_graph_rounded, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'This Month',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
+
+        /// 🔥 ADD THIS BUTTON HERE
+        IconButton(
+          onPressed: () {
+            context.read<DashboardProvider>().fetchDashboard();
+          },
+          icon: const Icon(Icons.refresh),
         ),
+
+        _monthBadge(),
       ],
+    );
+  }
+
+  Widget _monthBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primaryDark, AppColors.primaryMid],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDark.withOpacity(0.22),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_graph_rounded, color: Colors.white, size: 18),
+          SizedBox(width: 8),
+          Text(
+            'This Month',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

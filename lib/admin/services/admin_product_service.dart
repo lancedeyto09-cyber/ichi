@@ -1,135 +1,83 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/admin_product_model.dart';
 
 class AdminProductService {
-  static final List<AdminProduct> _products = [
-    AdminProduct(
-      id: '1',
-      name: 'Professional Acoustic Guitar',
-      description: 'High-quality acoustic guitar with warm tone',
-      price: 299.99,
-      originalPrice: 399.99,
-      category: 'Guitars',
-      image: 'assets/images/guitar1.png',
-      stock: 15,
-      rating: 4.8,
-      reviews: 128,
-      isActive: true,
-      createdAt: DateTime.now().subtract(const Duration(days: 30)),
-      updatedAt: DateTime.now(),
-      tags: ['acoustic', 'beginner-friendly', 'professional'],
-      sku: 'GUITAR-001',
-    ),
-    AdminProduct(
-      id: '2',
-      name: 'Electric Bass Guitar',
-      description: 'Perfect for jazz and funk music',
-      price: 349.99,
-      category: 'Bass',
-      image: 'assets/images/bass1.png',
-      stock: 8,
-      rating: 4.6,
-      reviews: 95,
-      isActive: true,
-      createdAt: DateTime.now().subtract(const Duration(days: 20)),
-      updatedAt: DateTime.now(),
-      tags: ['electric', 'bass', 'professional'],
-      sku: 'BASS-001',
-    ),
-    AdminProduct(
-      id: '3',
-      name: 'Digital Synthesizer',
-      description: '61-key professional synthesizer',
-      price: 599.99,
-      category: 'Keyboards',
-      image: 'assets/images/synth1.png',
-      stock: 5,
-      rating: 4.9,
-      reviews: 156,
-      isActive: true,
-      createdAt: DateTime.now().subtract(const Duration(days: 15)),
-      updatedAt: DateTime.now(),
-      tags: ['keyboard', 'digital', 'professional'],
-      sku: 'SYNTH-001',
-    ),
-    AdminProduct(
-      id: '4',
-      name: 'Studio Microphone',
-      description: 'Professional XLR recording microphone',
-      price: 199.99,
-      category: 'Audio',
-      image: 'assets/images/mic1.png',
-      stock: 20,
-      rating: 4.7,
-      reviews: 203,
-      isActive: true,
-      createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      updatedAt: DateTime.now(),
-      tags: ['audio', 'recording', 'professional'],
-      sku: 'MIC-001',
-    ),
-    AdminProduct(
-      id: '5',
-      name: 'Drum Set Kit',
-      description: 'Complete 5-piece drum kit with cymbals',
-      price: 449.99,
-      category: 'Drums',
-      image: 'assets/images/drums1.png',
-      stock: 3,
-      rating: 4.5,
-      reviews: 87,
-      isActive: true,
-      createdAt: DateTime.now().subtract(const Duration(days: 5)),
-      updatedAt: DateTime.now(),
-      tags: ['drums', 'complete-kit', 'beginner'],
-      sku: 'DRUM-001',
-    ),
-  ];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  List<AdminProduct> getAllProducts() {
-    return _products;
-  }
+  CollectionReference<Map<String, dynamic>> get _productsRef =>
+      _firestore.collection('products');
 
-  List<AdminProduct> getProductsByCategory(String category) {
-    return _products.where((p) => p.category == category).toList();
-  }
+  Future<List<AdminProduct>> getAllProducts() async {
+    final snapshot = await _productsRef.get();
 
-  List<AdminProduct> searchProducts(String query) {
-    return _products
-        .where((p) =>
-            p.name.toLowerCase().contains(query.toLowerCase()) ||
-            p.sku.toLowerCase().contains(query.toLowerCase()) ||
-            p.description.toLowerCase().contains(query.toLowerCase()))
+    return snapshot.docs
+        .map((doc) => AdminProduct.fromMap(doc.data(), doc.id))
         .toList();
   }
 
-  List<AdminProduct> getLowStockProducts(int threshold) {
-    return _products.where((p) => p.stock <= threshold).toList();
+  Future<List<AdminProduct>> getProductsByCategory(String category) async {
+    final snapshot =
+        await _productsRef.where('category', isEqualTo: category).get();
+
+    return snapshot.docs
+        .map((doc) => AdminProduct.fromMap(doc.data(), doc.id))
+        .toList();
   }
 
-  AdminProduct? getProductById(String id) {
-    try {
-      return _products.firstWhere((p) => p.id == id);
-    } catch (e) {
-      return null;
-    }
+  Future<List<AdminProduct>> searchProducts(String query) async {
+    final allProducts = await getAllProducts();
+    final q = query.toLowerCase();
+
+    return allProducts.where((p) {
+      return p.name.toLowerCase().contains(q) ||
+          p.sku.toLowerCase().contains(q) ||
+          p.description.toLowerCase().contains(q);
+    }).toList();
   }
 
-  void updateProduct(AdminProduct product) {
-    final index = _products.indexWhere((p) => p.id == product.id);
-    if (index != -1) {
-      _products[index] = product;
-    }
+  Future<List<AdminProduct>> getLowStockProducts(int threshold) async {
+    final allProducts = await getAllProducts();
+    return allProducts.where((p) => p.stock <= threshold).toList();
   }
 
-  void deleteProduct(String id) {
-    _products.removeWhere((p) => p.id == id);
+  Future<AdminProduct?> getProductById(String id) async {
+    final doc = await _productsRef.doc(id).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return AdminProduct.fromMap(doc.data()!, doc.id);
   }
 
-  void addProduct(AdminProduct product) {
-    _products.add(product);
+  Future<void> updateProduct(AdminProduct product) async {
+    await _productsRef.doc(product.id).set(
+          product.copyWith(updatedAt: DateTime.now()).toMap(),
+          SetOptions(merge: true),
+        );
   }
 
-  List<String> getAllCategories() {
-    return _products.map((p) => p.category).toSet().toList();
+  Future<void> deleteProduct(String id) async {
+    await _productsRef.doc(id).delete();
+  }
+
+  Future<void> addProduct(AdminProduct product) async {
+    final docRef = product.id.trim().isNotEmpty
+        ? _productsRef.doc(product.id)
+        : _productsRef.doc();
+
+    final productToSave = product.copyWith(
+      id: docRef.id,
+      createdAt: product.createdAt,
+      updatedAt: DateTime.now(),
+    );
+
+    await docRef.set(productToSave.toMap(), SetOptions(merge: true));
+  }
+
+  Future<List<String>> getAllCategories() async {
+    final allProducts = await getAllProducts();
+    return allProducts
+        .map((p) => p.category)
+        .where((c) => c.trim().isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
   }
 }

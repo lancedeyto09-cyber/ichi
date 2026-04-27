@@ -266,12 +266,12 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                   )
                 else if (customers.isEmpty)
                   _glassCard(
-                    child: SizedBox(
+                    child: const SizedBox(
                       width: double.infinity,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 42),
+                        padding: EdgeInsets.symmetric(vertical: 42),
                         child: Column(
-                          children: const [
+                          children: [
                             Icon(
                               Icons.people_outline_rounded,
                               size: 58,
