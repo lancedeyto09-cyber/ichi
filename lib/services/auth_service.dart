@@ -36,6 +36,7 @@ class FirebaseAuthService implements AuthService {
   @override
   User? get currentUser => _auth.currentUser;
 
+  /// 🔥 FINAL USER PROFILE CREATION (100% SAFE)
   Future<void> _ensureUserProfile({
     required User user,
     String? fallbackUsername,
@@ -48,24 +49,46 @@ class FirebaseAuthService implements AuthService {
 
     await userRef.set({
       'uid': user.uid,
+
       'username': (existingData?['username'] ??
               user.displayName ??
               fallbackUsername ??
-              '')
+              'User')
           .toString(),
+
       'email': (existingData?['email'] ?? user.email ?? fallbackEmail ?? '')
           .toString(),
+
+      /// 🔒 ROLE SYSTEM
       'role': (existingData?['role'] ?? 'user').toString(),
-      'createdAt': existingData?['createdAt'] ?? FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'isActive': existingData?['isActive'] ?? true,
-      'accountStatus': (existingData?['accountStatus'] ?? 'active').toString(),
+
+      /// 👤 PROFILE DATA
+      'phone': existingData?['phone'] ?? '',
+      'address': existingData?['address'] ??
+          {
+            'houseNumber': '',
+            'barangay': '',
+            'municipalityOrCity': '',
+            'province': '',
+            'zipCode': '',
+          },
+
+      /// ❤️ FAVORITES
       'favoriteProducts': existingData?['favoriteProducts'] is List
           ? List<String>.from(existingData!['favoriteProducts'])
           : <String>[],
+
+      /// 🔐 STATUS CONTROL
+      'isActive': existingData?['isActive'] ?? true,
+      'accountStatus': (existingData?['accountStatus'] ?? 'active').toString(),
+
+      /// 🕒 TIMESTAMPS
+      'createdAt': existingData?['createdAt'] ?? FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
+  /// LOGIN
   @override
   Future<void> signIn({
     required String email,
@@ -80,7 +103,7 @@ class FirebaseAuthService implements AuthService {
 
       final user = credential.user;
       if (user == null) {
-        throw Exception('Login failed. Please try again.');
+        throw Exception('Login failed.');
       }
 
       await _ensureUserProfile(
@@ -91,7 +114,7 @@ class FirebaseAuthService implements AuthService {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
 
       if (!userDoc.exists) {
-        throw Exception('User profile not found in database.');
+        throw Exception('User profile not found.');
       }
 
       final data = userDoc.data()!;
@@ -99,26 +122,27 @@ class FirebaseAuthService implements AuthService {
       final isActive = (data['isActive'] ?? true) == true;
       final accountStatus = (data['accountStatus'] ?? 'active').toString();
 
+      /// 🔒 ACCOUNT CONTROL
       if (!isActive || accountStatus == 'suspended') {
         await _auth.signOut();
-        throw Exception('This account has been suspended.');
+        throw Exception('This account is suspended.');
       }
 
+      /// 🔒 ADMIN CHECK
       if (asAdmin && role != 'admin' && role != 'super_admin') {
         await _auth.signOut();
-        throw Exception('This account is not an admin account.');
+        throw Exception('Not an admin account.');
       }
 
       if (!asAdmin && (role == 'admin' || role == 'super_admin')) {
-        throw Exception('Please use the admin login page for this account.');
+        throw Exception('Use admin login.');
       }
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapAuthError(e));
-    } catch (e) {
-      rethrow;
     }
   }
 
+  /// SIGNUP
   @override
   Future<void> signUp({
     required String username,
@@ -133,7 +157,7 @@ class FirebaseAuthService implements AuthService {
 
       final user = credential.user;
       if (user == null) {
-        throw Exception('Signup failed. Please try again.');
+        throw Exception('Signup failed.');
       }
 
       await user.updateDisplayName(username);
@@ -143,37 +167,40 @@ class FirebaseAuthService implements AuthService {
         fallbackUsername: username,
         fallbackEmail: email,
       );
+
+      /// 🔥 IMPORTANT: DO NOT AUTO LOGIN
+      await _auth.signOut();
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapAuthError(e));
-    } catch (e) {
-      rethrow;
     }
   }
 
+  /// LOGOUT
   @override
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
+  /// ERROR HANDLING
   String _mapAuthError(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-email':
-        return 'Invalid email address.';
+        return 'Invalid email.';
       case 'user-disabled':
-        return 'This account has been disabled.';
+        return 'Account disabled.';
       case 'user-not-found':
-        return 'No user found for that email.';
+        return 'No user found.';
       case 'wrong-password':
       case 'invalid-credential':
         return 'Incorrect email or password.';
       case 'email-already-in-use':
-        return 'That email is already registered.';
+        return 'Email already used.';
       case 'weak-password':
-        return 'Password must be at least 6 characters.';
+        return 'Weak password.';
       case 'too-many-requests':
-        return 'Too many attempts. Please try again later.';
+        return 'Too many attempts. Try later.';
       default:
-        return e.message ?? 'Authentication failed.';
+        return e.message ?? 'Auth error.';
     }
   }
 }

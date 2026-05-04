@@ -7,6 +7,7 @@ import '../providers/cart_provider.dart';
 import '../models/product_model.dart';
 import '../services/checkout_service.dart';
 import 'product_details_screen.dart';
+import '../services/user_profile_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,19 +47,40 @@ class _HomeScreenState extends State<HomeScreen> {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final auth = Provider.of<AuthService>(context, listen: false);
     final checkoutService = CheckoutService();
+    final profileService = UserProfileService();
+    final profile = await profileService.getUserProfile();
+    final address = Map<String, dynamic>.from(profile?['address'] ?? {});
 
     final nameController = TextEditingController(
-      text: auth.currentUser?.displayName ?? '',
+      text: (profile?['username'] ?? auth.currentUser?.displayName ?? '')
+          .toString(),
     );
     final emailController = TextEditingController(
       text: auth.currentUser?.email ?? '',
     );
-    final phoneController = TextEditingController();
-    final houseNumberController = TextEditingController();
-    final barangayController = TextEditingController();
-    final cityController = TextEditingController();
-    final provinceController = TextEditingController();
-    final zipController = TextEditingController();
+    final phoneController = TextEditingController(
+      text: (profile?['phone'] ?? '').toString(),
+    );
+
+    final houseNumberController = TextEditingController(
+      text: (address['houseNumber'] ?? '').toString(),
+    );
+
+    final barangayController = TextEditingController(
+      text: (address['barangay'] ?? '').toString(),
+    );
+
+    final cityController = TextEditingController(
+      text: (address['municipalityOrCity'] ?? '').toString(),
+    );
+
+    final provinceController = TextEditingController(
+      text: (address['province'] ?? '').toString(),
+    );
+
+    final zipController = TextEditingController(
+      text: (address['zipCode'] ?? '').toString(),
+    );
 
     await showDialog(
       context: context,
@@ -279,30 +301,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          GestureDetector(
-            onTap: _loading ? null : _logout,
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.2),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.4),
-                  width: 2,
-                ),
-              ),
-              child: _loading
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.person, color: Colors.white, size: 24),
-            ),
-          ),
         ],
       ),
     );
@@ -324,36 +322,217 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
               listen: false,
             ).searchProducts(value);
+
             setState(() {});
           },
           decoration: InputDecoration(
             hintText: 'Search musical instruments...',
             hintStyle: const TextStyle(color: AppColors.textLight),
-            prefixIcon: const Icon(Icons.search, color: AppColors.primaryDark),
-            suffixIcon: _searchCtrl.text.isNotEmpty
-                ? IconButton(
+            prefixIcon: const Icon(
+              Icons.search,
+              color: AppColors.primaryDark,
+            ),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_searchCtrl.text.isNotEmpty)
+                  IconButton(
                     icon: const Icon(
                       Icons.clear,
                       color: AppColors.primaryDark,
                     ),
                     onPressed: () {
                       _searchCtrl.clear();
+
                       Provider.of<ProductProvider>(
                         context,
                         listen: false,
                       ).searchProducts('');
+
                       setState(() {});
                     },
-                  )
-                : null,
+                  ),
+                Consumer<ProductProvider>(
+                  builder: (_, provider, __) {
+                    final hasFilter = provider.searchQuery.isNotEmpty ||
+                        provider.minPrice != null ||
+                        provider.maxPrice != null ||
+                        provider.sortBy != 'none' ||
+                        provider.selectedCategory != 'All';
+
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.tune_rounded,
+                            color: AppColors.primaryDark,
+                          ),
+                          onPressed: _showFilterSheet,
+                        ),
+                        if (hasFilter)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
+              vertical: 16,
             ),
           ),
         ),
       ),
+    );
+  }
+
+  void _showFilterSheet() {
+    final provider = Provider.of<ProductProvider>(context, listen: false);
+
+    final minCtrl = TextEditingController(
+      text: provider.minPrice?.toString() ?? '',
+    );
+    final maxCtrl = TextEditingController(
+      text: provider.maxPrice?.toString() ?? '',
+    );
+
+    String selectedSort = provider.sortBy;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Filters',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: minCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Min Price',
+                            prefixText: '₱',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: maxCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Max Price',
+                            prefixText: '₱',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: selectedSort,
+                    decoration: const InputDecoration(
+                      labelText: 'Sort By',
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'none',
+                        child: Text('Default'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'price_low',
+                        child: Text('Price: Low to High'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'price_high',
+                        child: Text('Price: High to Low'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'rating',
+                        child: Text('Highest Rating'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'name',
+                        child: Text('Name A-Z'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setModalState(() => selectedSort = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            provider.clearFilters();
+                            _searchCtrl.clear();
+                            Navigator.pop(context);
+                            setState(() {});
+                          },
+                          child: const Text('Clear'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final min = double.tryParse(minCtrl.text.trim());
+                            final max = double.tryParse(maxCtrl.text.trim());
+
+                            provider.setPriceFilter(min, max);
+                            provider.setSort(selectedSort);
+
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryDark,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Apply'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -470,13 +649,26 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'All Products',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'All Products',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    '${provider.products.length} result${provider.products.length == 1 ? '' : 's'}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               GridView.builder(

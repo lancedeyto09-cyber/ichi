@@ -7,17 +7,44 @@ import '../../constants/app_colors.dart';
 import '../providers/dashboard_provider.dart';
 import '../utils/admin_responsive.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      context.read<DashboardProvider>().startRealtimeDashboard();
+    });
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return AppColors.warningColor;
+      case 'processing':
+        return Colors.blue;
+      case 'shipped':
+        return Colors.purple;
+      case 'delivered':
+        return AppColors.successColor;
+      case 'cancelled':
+        return AppColors.errorColor;
+      default:
+        return AppColors.primaryDark;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = AdminResponsive.isMobile(context);
     final dashboard = context.watch<DashboardProvider>();
-
-    Future.delayed(Duration.zero, () {
-      context.read<DashboardProvider>().fetchDashboard();
-    });
     final salesCard = _glassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,23 +119,31 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
 
-    final topCategoryCard = _glassCard(
+    final topProductsCard = _glassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
-            'Top Category',
+        children: [
+          const Text(
+            'Top Products',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: AppColors.textDark,
             ),
           ),
-          SizedBox(height: 16),
-          _MiniStatRow(label: 'Guitars', value: '42%'),
-          _MiniStatRow(label: 'Keyboards', value: '27%'),
-          _MiniStatRow(label: 'Audio Gear', value: '18%'),
-          _MiniStatRow(label: 'Accessories', value: '13%'),
+          const SizedBox(height: 16),
+          if (dashboard.topProducts.isEmpty)
+            const Text(
+              'No top products yet.',
+              style: TextStyle(color: AppColors.textMedium),
+            )
+          else
+            ...dashboard.topProducts.map((product) {
+              return _MiniStatRow(
+                label: product.productName,
+                value: '${product.quantitySold} sold',
+              );
+            }),
         ],
       ),
     );
@@ -126,27 +161,21 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _OrderRow(
-            orderId: '#TOTAL',
-            customer: 'All Orders',
-            amount: '${dashboard.totalOrders}',
-            status: 'Orders',
-            statusColor: AppColors.primaryDark,
-          ),
-          _OrderRow(
-            orderId: '#PENDING',
-            customer: 'Pending Orders',
-            amount: '${dashboard.pendingOrders}',
-            status: 'Pending',
-            statusColor: AppColors.warningColor,
-          ),
-          _OrderRow(
-            orderId: '#DELIVERED',
-            customer: 'Delivered Orders',
-            amount: '${dashboard.deliveredOrders}',
-            status: 'Delivered',
-            statusColor: AppColors.successColor,
-          ),
+          if (dashboard.recentOrders.isEmpty)
+            const Text(
+              'No recent orders yet.',
+              style: TextStyle(color: AppColors.textMedium),
+            )
+          else
+            ...dashboard.recentOrders.map((order) {
+              return _OrderRow(
+                orderId: '#${order.id}',
+                customer: order.customerName,
+                amount: '₱${order.totalAmount.toStringAsFixed(2)}',
+                status: order.status,
+                statusColor: _statusColor(order.status),
+              );
+            }),
         ],
       ),
     );
@@ -164,14 +193,18 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _StockRow(
-            product: 'Products with low stock',
-            stock: '${dashboard.lowStockCount} items',
-          ),
-          const _StockRow(
-            product: 'Stock threshold',
-            stock: '≤ 5 left',
-          ),
+          if (dashboard.lowStockProducts.isEmpty)
+            const Text(
+              'No low stock products.',
+              style: TextStyle(color: AppColors.textMedium),
+            )
+          else
+            ...dashboard.lowStockProducts.map((product) {
+              return _StockRow(
+                product: product.name,
+                stock: '${product.stock} left',
+              );
+            }),
         ],
       ),
     );
@@ -233,6 +266,15 @@ class DashboardScreen extends StatelessWidget {
                     accent: AppColors.warningColor,
                     fullWidth: true,
                   ),
+                  const SizedBox(height: 12),
+                  _KpiCard(
+                    title: 'Customers',
+                    value: '${dashboard.totalUsers}',
+                    change: 'Registered users',
+                    icon: Icons.people_rounded,
+                    accent: AppColors.primaryMid,
+                    fullWidth: true,
+                  ),
                 ],
               )
             else
@@ -268,6 +310,13 @@ class DashboardScreen extends StatelessWidget {
                     icon: Icons.warning_amber_rounded,
                     accent: AppColors.warningColor,
                   ),
+                  _KpiCard(
+                    title: 'Customers',
+                    value: '${dashboard.totalUsers}',
+                    change: 'Registered users',
+                    icon: Icons.people_rounded,
+                    accent: AppColors.primaryMid,
+                  ),
                 ],
               ),
             const SizedBox(height: 24),
@@ -276,7 +325,7 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 16),
               quickStatusCard,
               const SizedBox(height: 16),
-              topCategoryCard,
+              topProductsCard,
             ] else
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,7 +337,7 @@ class DashboardScreen extends StatelessWidget {
                       children: [
                         quickStatusCard,
                         const SizedBox(height: 16),
-                        topCategoryCard,
+                        topProductsCard,
                       ],
                     ),
                   ),

@@ -11,7 +11,7 @@ import 'admin/providers/product_management_provider.dart';
 import 'admin/providers/order_management_provider.dart';
 import 'admin/providers/user_management_provider.dart';
 import 'admin/providers/analytics_provider.dart';
-import 'screens/auth_gate.dart';
+import 'auth_gate.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/home_screen.dart';
@@ -72,7 +72,7 @@ class IchiBootstrap extends StatelessWidget {
           create: (_) => AnalyticsProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => DashboardProvider()..startRealtimeDashboard(),
+          create: (_) => DashboardProvider(),
         )
       ],
       child: const IchiApp(),

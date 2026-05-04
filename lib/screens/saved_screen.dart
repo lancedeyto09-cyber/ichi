@@ -16,7 +16,10 @@ class SavedScreen extends StatelessWidget {
             provider.products.where((p) => p.isFavorite).toList();
 
         return Scaffold(
+          backgroundColor: AppColors.primaryLight,
           body: Container(
+            width: double.infinity,
+            height: double.infinity,
             decoration: const BoxDecoration(
               gradient: AppColors.primaryGradient,
             ),

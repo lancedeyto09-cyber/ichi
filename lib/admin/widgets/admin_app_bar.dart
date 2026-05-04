@@ -38,13 +38,6 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       centerTitle: false,
       actions: [
-        IconButton(
-          icon: const Icon(
-            Icons.notifications_outlined,
-            color: Colors.white,
-          ),
-          onPressed: () {},
-        ),
         Consumer<AdminProvider>(
           builder: (context, adminProvider, _) {
             return PopupMenuButton<String>(

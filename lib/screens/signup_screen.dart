@@ -35,7 +35,18 @@ class _SignupScreenState extends State<SignupScreen> {
         email: _email.text.trim(),
         password: _pass.text,
       );
-      if (mounted) Navigator.of(context).pushReplacementNamed('/home');
+      await auth.signOut();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully. Please log in.'),
+            backgroundColor: AppColors.successColor,
+          ),
+        );
+
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
     } catch (e) {
       setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');

@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/checkout_service.dart';
 import '../models/review_model.dart';
 import '../services/review_service.dart';
+import '../services/user_profile_service.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final Product product;
@@ -194,17 +195,42 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final auth = Provider.of<AuthService>(context, listen: false);
     final checkoutService = CheckoutService();
+    final profileService = UserProfileService();
+    final profile = await profileService.getUserProfile();
+    final address = Map<String, dynamic>.from(profile?['address'] ?? {});
 
-    final nameController =
-        TextEditingController(text: auth.currentUser?.displayName ?? '');
-    final emailController =
-        TextEditingController(text: auth.currentUser?.email ?? '');
-    final phoneController = TextEditingController();
-    final houseNumberController = TextEditingController();
-    final barangayController = TextEditingController();
-    final cityController = TextEditingController();
-    final provinceController = TextEditingController();
-    final zipController = TextEditingController();
+    final nameController = TextEditingController(
+      text: (profile?['username'] ?? auth.currentUser?.displayName ?? '')
+          .toString(),
+    );
+
+    final emailController = TextEditingController(
+      text: auth.currentUser?.email ?? '',
+    );
+
+    final phoneController = TextEditingController(
+      text: (profile?['phone'] ?? '').toString(),
+    );
+
+    final houseNumberController = TextEditingController(
+      text: (address['houseNumber'] ?? '').toString(),
+    );
+
+    final barangayController = TextEditingController(
+      text: (address['barangay'] ?? '').toString(),
+    );
+
+    final cityController = TextEditingController(
+      text: (address['municipalityOrCity'] ?? '').toString(),
+    );
+
+    final provinceController = TextEditingController(
+      text: (address['province'] ?? '').toString(),
+    );
+
+    final zipController = TextEditingController(
+      text: (address['zipCode'] ?? '').toString(),
+    );
 
     await showDialog(
       context: context,

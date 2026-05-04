@@ -15,6 +15,10 @@ class ProductProvider extends ChangeNotifier {
 
   String _searchQuery = '';
   String _selectedCategory = 'All';
+  double? _minPrice;
+  double? _maxPrice;
+  String _sortBy = 'none';
+
   bool _isLoading = false;
   String? _error;
 
@@ -33,6 +37,9 @@ class ProductProvider extends ChangeNotifier {
   List<Product> get products => _filteredProducts;
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
+  double? get minPrice => _minPrice;
+  double? get maxPrice => _maxPrice;
+  String get sortBy => _sortBy;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -147,6 +154,26 @@ class ProductProvider extends ChangeNotifier {
     _applyFilters();
   }
 
+  void setPriceFilter(double? min, double? max) {
+    _minPrice = min;
+    _maxPrice = max;
+    _applyFilters();
+  }
+
+  void setSort(String sort) {
+    _sortBy = sort;
+    _applyFilters();
+  }
+
+  void clearFilters() {
+    _searchQuery = '';
+    _selectedCategory = 'All';
+    _minPrice = null;
+    _maxPrice = null;
+    _sortBy = 'none';
+    _applyFilters();
+  }
+
   void _applyFilters() {
     List<Product> result = List.from(_products);
 
@@ -157,12 +184,38 @@ class ProductProvider extends ChangeNotifier {
         return p.name.toLowerCase().contains(q) ||
             p.description.toLowerCase().contains(q) ||
             p.category.toLowerCase().contains(q) ||
-            p.tags.join(' ').contains(q);
+            p.tags.join(' ').toLowerCase().contains(q);
       }).toList();
     }
 
     if (_selectedCategory != 'All') {
       result = result.where((p) => p.category == _selectedCategory).toList();
+    }
+
+    if (_minPrice != null) {
+      result = result.where((p) => p.price >= _minPrice!).toList();
+    }
+
+    if (_maxPrice != null) {
+      result = result.where((p) => p.price <= _maxPrice!).toList();
+    }
+
+    switch (_sortBy) {
+      case 'price_low':
+        result.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'price_high':
+        result.sort((a, b) => b.price.compareTo(a.price));
+        break;
+      case 'rating':
+        result.sort((a, b) => b.rating.compareTo(a.rating));
+        break;
+      case 'name':
+        result.sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      default:
+        break;
     }
 
     _filteredProducts = result;
