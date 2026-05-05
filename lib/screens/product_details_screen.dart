@@ -26,6 +26,21 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   final PageController _pageController = PageController();
   final ReviewService _reviewService = ReviewService();
 
+  int _currentImage = 0;
+  int _quantity = 1;
+
+  List<String> get _images {
+    if (widget.product.images.isNotEmpty) return widget.product.images;
+    if (widget.product.image.isNotEmpty) return [widget.product.image];
+    return [];
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _showAddReviewDialog(Product product) async {
     final commentController = TextEditingController();
     double selectedRating = 5;
@@ -110,6 +125,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
                             if (mounted) {
                               Navigator.pop(dialogContext);
+                              setState(() {});
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Review submitted!'),
@@ -138,21 +154,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         );
       },
     );
-  }
-
-  int _currentImage = 0;
-  int _quantity = 1;
-
-  List<String> get _images {
-    if (widget.product.images.isNotEmpty) return widget.product.images;
-    if (widget.product.image.isNotEmpty) return [widget.product.image];
-    return [];
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   void _increaseQuantity() {
@@ -203,31 +204,24 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       text: (profile?['username'] ?? auth.currentUser?.displayName ?? '')
           .toString(),
     );
-
     final emailController = TextEditingController(
       text: auth.currentUser?.email ?? '',
     );
-
     final phoneController = TextEditingController(
       text: (profile?['phone'] ?? '').toString(),
     );
-
     final houseNumberController = TextEditingController(
       text: (address['houseNumber'] ?? '').toString(),
     );
-
     final barangayController = TextEditingController(
       text: (address['barangay'] ?? '').toString(),
     );
-
     final cityController = TextEditingController(
       text: (address['municipalityOrCity'] ?? '').toString(),
     );
-
     final provinceController = TextEditingController(
       text: (address['province'] ?? '').toString(),
     );
-
     final zipController = TextEditingController(
       text: (address['zipCode'] ?? '').toString(),
     );
@@ -349,9 +343,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text(
-                                    'Order placed successfully!',
-                                  ),
+                                  content: Text('Order placed successfully!'),
                                   backgroundColor: AppColors.successColor,
                                 ),
                               );
@@ -835,6 +827,55 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
+  Widget _reviewAction(Product product) {
+    return FutureBuilder<List<bool>>(
+      future: Future.wait([
+        _reviewService.hasDeliveredOrderForProduct(product.id),
+        _reviewService.hasAlreadyReviewedProduct(product.id),
+      ]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          );
+        }
+
+        final canReview = snapshot.data?[0] ?? false;
+        final alreadyReviewed = snapshot.data?[1] ?? false;
+
+        if (alreadyReviewed) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.successColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              'Reviewed',
+              style: TextStyle(
+                color: AppColors.successColor,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          );
+        }
+
+        if (!canReview) {
+          return const SizedBox.shrink();
+        }
+
+        return TextButton.icon(
+          onPressed: () => _showAddReviewDialog(product),
+          icon: const Icon(Icons.rate_review_rounded, size: 18),
+          label: const Text('Add Review'),
+        );
+      },
+    );
+  }
+
   Widget _reviewsSection(Product product) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -851,11 +892,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 ),
               ),
             ),
-            TextButton.icon(
-              onPressed: () => _showAddReviewDialog(product),
-              icon: const Icon(Icons.rate_review_rounded, size: 18),
-              label: const Text('Add Review'),
-            ),
+            _reviewAction(product),
           ],
         ),
         const SizedBox(height: 10),
@@ -882,7 +919,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Text(
-                  'No reviews yet. Be the first to review this product.',
+                  'No reviews yet.',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textMedium,
