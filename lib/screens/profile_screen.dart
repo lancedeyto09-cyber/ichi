@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../services/auth_service.dart';
@@ -16,6 +19,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _loading = true;
   bool _saving = false;
+  bool _uploadingAvatar = false;
+
+  String? _avatarUrl;
 
   final _usernameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -36,6 +42,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final auth = context.read<AuthService>();
       final data = await _profileService.getUserProfile();
 
+      _avatarUrl = (data?['avatar'] ?? '').toString();
+      if (_avatarUrl!.isEmpty) _avatarUrl = null;
+
       _usernameCtrl.text =
           (data?['username'] ?? auth.currentUser?.displayName ?? '').toString();
       _phoneCtrl.text = (data?['phone'] ?? '').toString();
@@ -55,6 +64,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 75,
+    );
+
+    if (picked == null) return;
+
+    setState(() => _uploadingAvatar = true);
+
+    try {
+      final avatarUrl = await _profileService.uploadAvatar(File(picked.path));
+
+      if (!mounted) return;
+
+      setState(() => _avatarUrl = avatarUrl);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Avatar updated successfully!'),
+          backgroundColor: AppColors.successColor,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingAvatar = false);
     }
   }
 
@@ -223,9 +268,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _userInfo(AuthService auth) {
     return Column(
       children: [
-        const CircleAvatar(
-          radius: 40,
-          child: Icon(Icons.person, size: 40),
+        GestureDetector(
+          onTap: _uploadingAvatar ? null : _pickAvatar,
+          child: Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              CircleAvatar(
+                radius: 42,
+                backgroundColor: AppColors.bgLight,
+                backgroundImage: _avatarUrl != null
+                    ? NetworkImage(_avatarUrl!)
+                    : null,
+                child: _avatarUrl == null
+                    ? const Icon(Icons.person, size: 42)
+                    : null,
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryDark,
+                  shape: BoxShape.circle,
+                ),
+                child: _uploadingAvatar
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.camera_alt,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
         Text(
