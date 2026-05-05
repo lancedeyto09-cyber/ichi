@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'cloudinary_service.dart';
 
 class UserProfileService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final CloudinaryService _cloudinaryService = CloudinaryService();
 
   DocumentReference<Map<String, dynamic>> get _userRef {
     final user = _auth.currentUser;
@@ -16,6 +21,17 @@ class UserProfileService {
   Future<Map<String, dynamic>?> getUserProfile() async {
     final doc = await _userRef.get();
     return doc.data();
+  }
+
+  Future<String> uploadAvatar(File imageFile) async {
+    final avatarUrl = await _cloudinaryService.uploadImage(imageFile);
+
+    await _userRef.set({
+      'avatar': avatarUrl,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    return avatarUrl;
   }
 
   Future<void> updateProfile({
