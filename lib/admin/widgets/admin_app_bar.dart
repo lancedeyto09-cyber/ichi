@@ -51,7 +51,6 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                 }
               },
               itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuDivider(),
                 const PopupMenuItem<String>(
                   value: 'logout',
                   child: Row(
