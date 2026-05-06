@@ -23,6 +23,8 @@ abstract class AuthService {
     String zipCode = '',
   });
 
+  Future<void> sendPasswordResetEmail(String email);
+
   Future<void> signOut();
 }
 
@@ -187,6 +189,21 @@ class FirebaseAuthService implements AuthService {
       );
 
       await _auth.signOut();
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_mapAuthError(e));
+    }
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      final cleanedEmail = email.trim();
+
+      if (cleanedEmail.isEmpty) {
+        throw Exception('Enter your email.');
+      }
+
+      await _auth.sendPasswordResetEmail(email: cleanedEmail);
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapAuthError(e));
     }
