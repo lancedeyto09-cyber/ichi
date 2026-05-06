@@ -15,6 +15,12 @@ abstract class AuthService {
     required String username,
     required String email,
     required String password,
+    String phone = '',
+    String houseNumber = '',
+    String barangay = '',
+    String municipalityOrCity = '',
+    String province = '',
+    String zipCode = '',
   });
 
   Future<void> signOut();
@@ -36,59 +42,62 @@ class FirebaseAuthService implements AuthService {
   @override
   User? get currentUser => _auth.currentUser;
 
-  /// 🔥 FINAL USER PROFILE CREATION (100% SAFE)
   Future<void> _ensureUserProfile({
     required User user,
     String? fallbackUsername,
     String? fallbackEmail,
+    String? phone,
+    String? houseNumber,
+    String? barangay,
+    String? municipalityOrCity,
+    String? province,
+    String? zipCode,
   }) async {
     final userRef = _firestore.collection('users').doc(user.uid);
 
     final userDoc = await userRef.get();
     final existingData = userDoc.data();
+    final existingAddress = Map<String, dynamic>.from(
+      existingData?['address'] ?? {},
+    );
+
+    String pick(String? newValue, dynamic oldValue) {
+      final cleaned = (newValue ?? '').trim();
+      if (cleaned.isNotEmpty) return cleaned;
+      return (oldValue ?? '').toString();
+    }
 
     await userRef.set({
       'uid': user.uid,
-
       'username': (existingData?['username'] ??
               user.displayName ??
               fallbackUsername ??
               'User')
           .toString(),
-
       'email': (existingData?['email'] ?? user.email ?? fallbackEmail ?? '')
           .toString(),
-
-      /// 🔒 ROLE SYSTEM
       'role': (existingData?['role'] ?? 'user').toString(),
-
-      /// 👤 PROFILE DATA
-      'phone': existingData?['phone'] ?? '',
-      'address': existingData?['address'] ??
-          {
-            'houseNumber': '',
-            'barangay': '',
-            'municipalityOrCity': '',
-            'province': '',
-            'zipCode': '',
-          },
-
-      /// ❤️ FAVORITES
+      'phone': pick(phone, existingData?['phone']),
+      'address': {
+        'houseNumber': pick(houseNumber, existingAddress['houseNumber']),
+        'barangay': pick(barangay, existingAddress['barangay']),
+        'municipalityOrCity': pick(
+          municipalityOrCity,
+          existingAddress['municipalityOrCity'],
+        ),
+        'province': pick(province, existingAddress['province']),
+        'zipCode': pick(zipCode, existingAddress['zipCode']),
+      },
       'favoriteProducts': existingData?['favoriteProducts'] is List
           ? List<String>.from(existingData!['favoriteProducts'])
           : <String>[],
-
-      /// 🔐 STATUS CONTROL
       'isActive': existingData?['isActive'] ?? true,
       'accountStatus': (existingData?['accountStatus'] ?? 'active').toString(),
-
-      /// 🕒 TIMESTAMPS
       'createdAt': existingData?['createdAt'] ?? FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
-  /// LOGIN
   @override
   Future<void> signIn({
     required String email,
@@ -122,13 +131,11 @@ class FirebaseAuthService implements AuthService {
       final isActive = (data['isActive'] ?? true) == true;
       final accountStatus = (data['accountStatus'] ?? 'active').toString();
 
-      /// 🔒 ACCOUNT CONTROL
       if (!isActive || accountStatus == 'suspended') {
         await _auth.signOut();
         throw Exception('This account is suspended.');
       }
 
-      /// 🔒 ADMIN CHECK
       if (asAdmin && role != 'admin' && role != 'super_admin') {
         await _auth.signOut();
         throw Exception('Not an admin account.');
@@ -142,12 +149,17 @@ class FirebaseAuthService implements AuthService {
     }
   }
 
-  /// SIGNUP
   @override
   Future<void> signUp({
     required String username,
     required String email,
     required String password,
+    String phone = '',
+    String houseNumber = '',
+    String barangay = '',
+    String municipalityOrCity = '',
+    String province = '',
+    String zipCode = '',
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -166,22 +178,25 @@ class FirebaseAuthService implements AuthService {
         user: user,
         fallbackUsername: username,
         fallbackEmail: email,
+        phone: phone,
+        houseNumber: houseNumber,
+        barangay: barangay,
+        municipalityOrCity: municipalityOrCity,
+        province: province,
+        zipCode: zipCode,
       );
 
-      /// 🔥 IMPORTANT: DO NOT AUTO LOGIN
       await _auth.signOut();
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapAuthError(e));
     }
   }
 
-  /// LOGOUT
   @override
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  /// ERROR HANDLING
   String _mapAuthError(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-email':
