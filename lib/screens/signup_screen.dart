@@ -17,6 +17,13 @@ class _SignupScreenState extends State<SignupScreen> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
   final _confirm = TextEditingController();
+  final _phone = TextEditingController();
+  final _houseNumber = TextEditingController();
+  final _barangay = TextEditingController();
+  final _city = TextEditingController();
+  final _province = TextEditingController();
+  final _zipCode = TextEditingController();
+
   bool _loading = false;
   String? _error;
   bool _obscurePass = true;
@@ -34,6 +41,12 @@ class _SignupScreenState extends State<SignupScreen> {
         username: _username.text.trim(),
         email: _email.text.trim(),
         password: _pass.text,
+        phone: _phone.text.trim(),
+        houseNumber: _houseNumber.text.trim(),
+        barangay: _barangay.text.trim(),
+        municipalityOrCity: _city.text.trim(),
+        province: _province.text.trim(),
+        zipCode: _zipCode.text.trim(),
       );
       await auth.signOut();
 
@@ -66,6 +79,12 @@ class _SignupScreenState extends State<SignupScreen> {
     _email.dispose();
     _pass.dispose();
     _confirm.dispose();
+    _phone.dispose();
+    _houseNumber.dispose();
+    _barangay.dispose();
+    _city.dispose();
+    _province.dispose();
+    _zipCode.dispose();
     super.dispose();
   }
 
@@ -87,10 +106,10 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 12),
                 Image.asset(
                   'assets/images/logoo.png',
-                  width: 200,
-                  height: 200,
+                  width: 150,
+                  height: 150,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
                 _buildSignupCard(),
                 const SizedBox(height: 16),
                 _buildLoginLink(),
@@ -136,7 +155,7 @@ class _SignupScreenState extends State<SignupScreen> {
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(28),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -159,33 +178,34 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: _username,
                   hintText: 'Username',
                   icon: Icons.person_outline,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Enter username' : null,
+                  validator: _requiredValidator('Enter username'),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 _buildTextField(
                   controller: _email,
                   hintText: 'Email',
                   icon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Enter email';
                     if (!v.contains('@')) return 'Enter valid email';
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 _buildPasswordField(
                   controller: _pass,
                   hintText: 'Password',
                   obscure: _obscurePass,
                   onToggle: () => setState(() => _obscurePass = !_obscurePass),
                   validator: (v) {
-                    if (v == null || v.length < 6)
+                    if (v == null || v.length < 6) {
                       return 'At least 6 characters';
+                    }
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 _buildPasswordField(
                   controller: _confirm,
                   hintText: 'Confirm Password',
@@ -196,6 +216,62 @@ class _SignupScreenState extends State<SignupScreen> {
                     if (v != _pass.text) return 'Passwords do not match';
                     return null;
                   },
+                ),
+                const SizedBox(height: 18),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Checkout Information',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildTextField(
+                  controller: _phone,
+                  hintText: 'Phone Number',
+                  icon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  validator: _requiredValidator('Enter phone number'),
+                ),
+                const SizedBox(height: 14),
+                _buildTextField(
+                  controller: _houseNumber,
+                  hintText: 'House Number / Street',
+                  icon: Icons.home_outlined,
+                  validator: _requiredValidator('Enter house number or street'),
+                ),
+                const SizedBox(height: 14),
+                _buildTextField(
+                  controller: _barangay,
+                  hintText: 'Barangay',
+                  icon: Icons.location_on_outlined,
+                  validator: _requiredValidator('Enter barangay'),
+                ),
+                const SizedBox(height: 14),
+                _buildTextField(
+                  controller: _city,
+                  hintText: 'Municipality or City',
+                  icon: Icons.location_city_outlined,
+                  validator: _requiredValidator('Enter city'),
+                ),
+                const SizedBox(height: 14),
+                _buildTextField(
+                  controller: _province,
+                  hintText: 'Province',
+                  icon: Icons.map_outlined,
+                  validator: _requiredValidator('Enter province'),
+                ),
+                const SizedBox(height: 14),
+                _buildTextField(
+                  controller: _zipCode,
+                  hintText: 'Zip Code',
+                  icon: Icons.markunread_mailbox_outlined,
+                  keyboardType: TextInputType.number,
+                  validator: _requiredValidator('Enter zip code'),
                 ),
                 const SizedBox(height: 14),
                 if (_error != null) _buildErrorWidget(),
@@ -209,14 +285,20 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
+  String? Function(String?) _requiredValidator(String message) {
+    return (v) => (v == null || v.trim().isEmpty) ? message : null;
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
     required IconData icon,
     required String? Function(String?) validator,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextFormField(
       controller: controller,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: AppColors.primaryDark),
         hintText: hintText,
