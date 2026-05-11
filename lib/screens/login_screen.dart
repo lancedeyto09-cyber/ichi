@@ -127,11 +127,10 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 _buildTextField(
                   controller: _emailCtrl,
-                  hintText: 'Email / Username',
+                  hintText: 'Email',
                   icon: Icons.person_outline,
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Enter email/username'
-                      : null,
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Enter Email' : null,
                 ),
                 const SizedBox(height: 18),
                 _buildPasswordField(),

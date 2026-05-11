@@ -26,6 +26,7 @@ import 'screens/explore_screen.dart';
 import 'admin/screens/add_product_screen.dart';
 import 'screens/favorites_screen.dart';
 import 'admin/providers/dashboard_provider.dart';
+import 'screens/forgot_password_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -102,6 +103,7 @@ class IchiApp extends StatelessWidget {
         '/explore': (context) => const ExploreScreen(),
         '/admin-add-product': (context) => const AddProductScreen(),
         '/favorites': (context) => const FavoritesScreen(),
+        '/forgot-password': (_) => const ForgotPasswordScreen(),
       },
     );
   }

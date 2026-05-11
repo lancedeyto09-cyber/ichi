@@ -203,7 +203,19 @@ class FirebaseAuthService implements AuthService {
         throw Exception('Enter your email.');
       }
 
-      await _auth.sendPasswordResetEmail(email: cleanedEmail);
+      final userQuery = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: cleanedEmail)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isEmpty) {
+        throw Exception('No account found with this email.');
+      }
+
+      await _auth.sendPasswordResetEmail(
+        email: cleanedEmail,
+      );
     } on FirebaseAuthException catch (e) {
       throw Exception(_mapAuthError(e));
     }
