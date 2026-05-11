@@ -36,13 +36,22 @@ class SavedScreen extends StatelessWidget {
                             itemBuilder: (context, index) {
                               final product = savedProducts[index];
 
+                              final imagePath = product.image.trim();
+
+                              final hasImage = imagePath.isNotEmpty;
+
+                              final hasNetworkImage = hasImage &&
+                                  (imagePath.startsWith('http://') ||
+                                      imagePath.startsWith('https://'));
+
                               return GestureDetector(
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => ProductDetailsScreen(
-                                          product: product),
+                                        product: product,
+                                      ),
                                     ),
                                   );
                                 },
@@ -61,20 +70,39 @@ class SavedScreen extends StatelessWidget {
                                         child: SizedBox(
                                           width: 82,
                                           height: 82,
-                                          child: product.image
-                                                  .startsWith('http')
-                                              ? Image.network(
-                                                  product.image,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) =>
-                                                      _imageFallback(),
-                                                )
-                                              : Image.asset(
-                                                  product.image,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) =>
-                                                      _imageFallback(),
-                                                ),
+                                          child: !hasImage
+                                              ? _imageFallback()
+                                              : hasNetworkImage
+                                                  ? Image.network(
+                                                      imagePath,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (_, __, ___) =>
+                                                              _imageFallback(),
+                                                      loadingBuilder: (
+                                                        context,
+                                                        child,
+                                                        progress,
+                                                      ) {
+                                                        if (progress == null) {
+                                                          return child;
+                                                        }
+
+                                                        return const Center(
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                          ),
+                                                        );
+                                                      },
+                                                    )
+                                                  : Image.asset(
+                                                      imagePath,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (_, __, ___) =>
+                                                              _imageFallback(),
+                                                    ),
                                         ),
                                       ),
                                       const SizedBox(width: 12),
@@ -129,8 +157,9 @@ class SavedScreen extends StatelessWidget {
                                           GestureDetector(
                                             onTap: () {
                                               if (product.stock <= 0) {
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   const SnackBar(
                                                     content: Text(
                                                       'This product is out of stock.',
@@ -139,6 +168,7 @@ class SavedScreen extends StatelessWidget {
                                                         AppColors.errorColor,
                                                   ),
                                                 );
+
                                                 return;
                                               }
 
@@ -146,8 +176,9 @@ class SavedScreen extends StatelessWidget {
                                                   .read<CartProvider>()
                                                   .addToCart(product);
 
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
                                                 SnackBar(
                                                   content: Text(
                                                     '${product.name} added to cart!',

@@ -35,16 +35,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           .read<AuthService>()
           .sendPasswordResetEmail(_emailCtrl.text.trim());
 
+      if (!mounted) return;
+
       setState(() {
         _message = 'Password reset email sent. Check your inbox.';
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');
       });
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    super.dispose();
   }
 
   @override

@@ -35,8 +35,13 @@ class UserOrder {
       status: map['status'] ?? 'pending',
       paymentStatus: map['paymentStatus'] ?? 'pending',
       trackingNumber: map['trackingNumber'],
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      items: (map['items'] as List).map((e) => OrderItem.fromMap(e)).toList(),
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      items: (map['items'] as List<dynamic>? ?? [])
+          .whereType<Map>()
+          .map((e) => OrderItem.fromMap(Map<String, dynamic>.from(e)))
+          .toList(),
     );
   }
 }
@@ -58,8 +63,8 @@ class OrderItem {
     return OrderItem(
       productId: map['productId'].toString(),
       productName: map['productName'],
-      quantity: map['quantity'],
-      price: (map['price']).toDouble(),
+      quantity: ((map['quantity'] ?? 0) as num).toInt(),
+      price: ((map['price'] ?? 0) as num).toDouble(),
     );
   }
 }

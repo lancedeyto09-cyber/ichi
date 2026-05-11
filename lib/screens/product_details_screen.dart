@@ -176,8 +176,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Future<void> _buyNow() async {
-    final cart = Provider.of<CartProvider>(context, listen: false);
-
     if (widget.product.stock <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -188,12 +186,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       return;
     }
 
-    cart.addToCart(widget.product, quantity: _quantity);
-    await _showCheckoutDialog();
+    final buyNowItems = [
+      CartItem(product: widget.product, quantity: _quantity),
+    ];
+
+    final buyNowTotal = widget.product.price * _quantity;
+
+    await _showCheckoutDialog(
+      checkoutItems: buyNowItems,
+      checkoutTotal: buyNowTotal,
+    );
   }
 
-  Future<void> _showCheckoutDialog() async {
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+  Future<void> _showCheckoutDialog({
+    required List<CartItem> checkoutItems,
+    required double checkoutTotal,
+  }) async {
     final auth = Provider.of<AuthService>(context, listen: false);
     final checkoutService = CheckoutService();
     final profileService = UserProfileService();
@@ -282,7 +290,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Total: ₱${cartProvider.totalPrice.toStringAsFixed(2)}',
+                        'Total: ₱${checkoutTotal.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 16,
@@ -324,8 +332,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             setDialogState(() => isSubmitting = true);
 
                             await checkoutService.placeOrder(
-                              cartItems: cartProvider.items,
-                              totalAmount: cartProvider.totalPrice,
+                              cartItems: checkoutItems,
+                              totalAmount: checkoutTotal,
                               customerName: nameController.text.trim(),
                               customerEmail: emailController.text.trim(),
                               phoneNumber: phoneController.text.trim(),
@@ -335,8 +343,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               province: provinceController.text.trim(),
                               zipCode: zipController.text.trim(),
                             );
-
-                            cartProvider.clearCart();
 
                             if (mounted) {
                               Navigator.pop(dialogContext);

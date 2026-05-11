@@ -1296,16 +1296,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                             Row(
                                               children: [
                                                 GestureDetector(
-                                                  onTap: cartItem.quantity > 1
-                                                      ? () {
-                                                          cartProvider
-                                                              .updateQuantity(
-                                                            product.id,
-                                                            cartItem.quantity -
-                                                                1,
-                                                          );
-                                                        }
-                                                      : null,
+                                                  onTap: () {
+                                                    if (cartItem.quantity <=
+                                                        1) {
+                                                      cartProvider
+                                                          .removeFromCart(
+                                                              product.id);
+                                                    } else {
+                                                      cartProvider
+                                                          .updateQuantity(
+                                                        product.id,
+                                                        cartItem.quantity - 1,
+                                                      );
+                                                    }
+                                                  },
                                                   child: _cartQtyButton(
                                                     Icons.remove,
                                                     light: true,
@@ -1325,17 +1329,28 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   ),
                                                 ),
                                                 GestureDetector(
-                                                  onTap: cartItem.quantity <
-                                                          product.stock
-                                                      ? () {
-                                                          cartProvider
-                                                              .updateQuantity(
-                                                            product.id,
-                                                            cartItem.quantity +
-                                                                1,
-                                                          );
-                                                        }
-                                                      : null,
+                                                  onTap: () {
+                                                    if (cartItem.quantity >=
+                                                        product.stock) {
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text(
+                                                              'Quantity reached available stock.'),
+                                                          backgroundColor:
+                                                              AppColors
+                                                                  .warningColor,
+                                                        ),
+                                                      );
+                                                      return;
+                                                    }
+
+                                                    cartProvider.updateQuantity(
+                                                      product.id,
+                                                      cartItem.quantity + 1,
+                                                    );
+                                                  },
                                                   child: _cartQtyButton(
                                                     Icons.add,
                                                   ),
